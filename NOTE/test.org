@@ -1,6 +1,22 @@
-* 1
-abcd
-** 2
-abcd
-*** 3
-abcd
+* 代码着色
+** C代码
+#+BEGIN_SRC c
+int main(int argc , char *argv[])
+{
+    printf("hello world!\n");
+    return 0;
+}
+#+END_SRC
+
+** Footnotes
+The Org homepage[fn:1] now looks a lot better than it used to.
+
+Tom is a boy[fn:name].
+
+Jim is a boy[fn:: This is the inline definition of this footnote] too.
+
+Lily is a girl[fn:lily: a definition].
+
+
+[fn:1] The link is: http://orgmode.org
+[fn:name] Tom is a boy.
