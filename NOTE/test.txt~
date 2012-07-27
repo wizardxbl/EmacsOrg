@@ -1,0 +1,67 @@
+                                 test
+                                 ====
+
+Author: yangyang <yangyang@wizard>
+Date: 2012-07-27 10:32:42 CST
+
+
+Table of Contents
+=================
+1 代码着色 
+    1.1 C代码 
+    1.2 Footnotes 
+2 Table 
+
+
+1 代码着色 
+~~~~~~~~~~~
+
+1.1 C代码 
+==========
+  int main(int argc , char *argv[])
+  {
+      printf("hello world!\n");
+      return 0;
+  }
+
+
+1.2 Footnotes 
+==============
+The Org homepage[1] now looks a lot better than it used to.
+
+Tom is a boy[2].
+
+Jim is a boy[3] too.
+
+Lily is a girl[4].
+
+2 Table 
+~~~~~~~~
+
+
+      <6>     
+  1   one     
+  2   two     
+  3   this is a long chunk of text  
+  4   four    
+
+[#abc]
+
+[1234]
+
+abc
+
+  N   N^2 | N^3   N^4 | sqrt(n)   sqrt[4 ](N)  
+ ---+-----+-----+-----+---------+------------
+  1   1   | 1     1   | 1         1           
+
+[baiabcdu]
+
+[1] The link is: [http://orgmode.org]
+
+[2] Tom is a boy.
+
+[3] This is the inline definition of this footnote
+
+[4] a definition
+

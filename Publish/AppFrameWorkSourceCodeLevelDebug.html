@@ -1,0 +1,169 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+lang="en" xml:lang="en">
+<head>
+<title>应用程序Framework源码级别调试</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="2012-07-27 16:49:11 CST"/>
+<meta name="author" content="Wizard.Yang"/>
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  html { font-family: Times, serif; font-size: 12pt; }
+  .title  { text-align: center; }
+  .todo   { color: red; }
+  .done   { color: green; }
+  .tag    { background-color:lightblue; font-weight:normal }
+  .target { }
+  .timestamp { color: grey }
+  .timestamp-kwd { color: CadetBlue }
+  p.verse { margin-left: 3% }
+  pre {
+	border: 1pt solid #AEBDCC;
+	background-color: #F3F5F7;
+	padding: 5pt;
+	font-family: courier, monospace;
+        font-size: 90%;
+        overflow:auto;
+  }
+  table { border-collapse: collapse; }
+  td, th { vertical-align: top; }
+  dt { font-weight: bold; }
+  div.figure { padding: 0.5em; }
+  div.figure p { text-align: center; }
+  .linenr { font-size:smaller }
+  .code-highlighted {background-color:#ffff00;}
+  .org-info-js_info-navigation { border-style:none; }
+  #org-info-js_console-label { font-size:10px; font-weight:bold;
+                               white-space:nowrap; }
+  .org-info-js_search-highlight {background-color:#ffff00; color:#000000;
+                                 font-weight:bold; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*/-->
+</script>
+</head><body>
+<h1 class="title">应用程序Framework源码级别调试</h1>
+
+<p>参考《Android框架揭秘》
+</p>
+
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1 应用程序Framework源码级别调试 </a>
+<ul>
+<li><a href="#sec-1.1">1.1 加载应用程序Framework源 </a></li>
+<li><a href="#sec-1.2">1.2 调试HelloWorld Framework（源码级） </a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1">1 应用程序Framework源码级别调试 </h2>
+<div id="text-1">
+
+
+
+</div>
+
+<div id="outline-container-1.1" class="outline-3">
+<h3 id="sec-1.1">1.1 加载应用程序Framework源 </h3>
+<div id="text-1.1">
+
+
+<p>
+在Android源码中包含了Eclipse的设置文件，利用它可以把Framework的所有源码路径保存下来。
+</p>
+<p>
+(1) 首先搭建好Android编译环境，下载Android平台源代码，在使用make命令，编译Android系统。
+</p>
+<p>
+(2) 再把Android提供的.classpath文件复制到Android平台源码所在的最上层目录中
+</p>
+
+
+
+<pre class="src src-sh">
+$<span style="color: #add8e6; font-weight: bold; font-style: italic;">cd</span>  mydroid
+$<span style="color: #add8e6; font-weight: bold; font-style: italic;">cp</span> development/ide/eclipse/.classpath ~/mydroid
+$<span style="color: #add8e6; font-weight: bold; font-style: italic;">chmod</span> u+w .classpath
+</pre>
+
+
+
+
+<p>
+(3) 启动emacs，File-&gt;New-&gt;Java Project，在New Java Project窗口中输入工程名，指定Location为Android源码所在的目录，也就是.classpath所在的位置，然后单击Finish按钮。
+</p>
+<p>
+(4) 查看Package Explorer窗口，可以看到Android Framework源码已经被导入进来了。
+</p>
+<p>
+(5) 接下来设置调试器，以便调试Android平台源码。先要建立一个HelloWorld工程。在HelloWorld工程上单击鼠标右键，Debug As-&gt;Debug Configuration，打开Debug Cofnigurations窗口。
+</p>
+<p>
+(6) 在Debug Configurations窗口左侧列表中，选择Remote Java Application,单击鼠标右键，选择New，设置Name,Project,Host,Port，单击Apply应用。
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-1.2" class="outline-3">
+<h3 id="sec-1.2">1.2 调试HelloWorld Framework（源码级） </h3>
+<div id="text-1.2">
+
+
+<p>
+上面工作完成后，开始调试HelloWorld程序，跟随与应用程序相关的Framework源代码，查看变量的值。
+</p>
+<p>
+(1) 首先在HelloWorld程序里面设置一个断点，比如setContentView(R.layout.main);这里设置一个断点。然后在HelloWorld工程上右键Debug As-&gt;Android Application打开调试窗口，程序运行到断点的位置停止，并把控制权交给Eclipse的java调试器。
+</p>
+<p>
+(2) 在Debug窗口中点击ActivityThread类，会提示源码没有找到，此时，在ActivityThread.perform LaunchActivity上单击鼠标右键，在弹出的菜单中选择Edit Source Lookup菜单，弹出Edit Source Lookup Path窗口。
+</p>
+<p>
+(3) 在Edit Source Lookup Path窗口中单击Add按钮
+</p>
+<p>
+(4) 选择Java Project，然后选择前面创建的的Android-Framework工程。
+</p>
+<p>
+(5) 若能看到ActivityThread类的源码，表示源码添加成功，在右侧的Variables窗口中，可以看到应用程序Framework中的所有变量值。
+</p>
+<p>
+至此，调试环境搭建完成。
+</p></div>
+</div>
+</div>
+<div id="postamble"><p class="author"> Author: Wizard.Yang
+<a href="mailto:xblandy@gmail.com">&lt;xblandy@gmail.com&gt;</a>
+</p>
+<p class="date"> Date: 2012-07-27 16:49:11 CST</p>
+</div></body>
+</html>

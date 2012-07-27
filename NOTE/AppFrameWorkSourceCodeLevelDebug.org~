@@ -1,0 +1,15 @@
+* 应用程序Framework源码级别调试
+
+** 加载应用程序Framework源
+
+在Android源码中包含了Eclipse的设置文件，利用它可以把Framework的所有源码路径保存下来。
+
+(1) 首先搭建好Android编译环境，下载Android平台源代码，在使用make命令，编译Android系统。
+
+(2) 再把Android提供的.classpath文件复制到Android平台源码所在的最上层目录中
+
+#+BEGIN_SRC shell
+$cd  mydroid
+$cp development/ide/eclipse/.classpath ~/mydroid
+$chmod u+w .classpath
+#+END_SRC
