@@ -1,0 +1,721 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+lang="en" xml:lang="en">
+<head>
+<title>JNIBasicPrinciple</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="2012-07-30 16:58:42 CST"/>
+<meta name="author" content="yangyang"/>
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  html { font-family: Times, serif; font-size: 12pt; }
+  .title  { text-align: center; }
+  .todo   { color: red; }
+  .done   { color: green; }
+  .tag    { background-color:lightblue; font-weight:normal }
+  .target { }
+  .timestamp { color: grey }
+  .timestamp-kwd { color: CadetBlue }
+  p.verse { margin-left: 3% }
+  pre {
+	border: 1pt solid #AEBDCC;
+	background-color: #F3F5F7;
+	padding: 5pt;
+	font-family: courier, monospace;
+        font-size: 90%;
+        overflow:auto;
+  }
+  table { border-collapse: collapse; }
+  td, th { vertical-align: top; }
+  dt { font-weight: bold; }
+  div.figure { padding: 0.5em; }
+  div.figure p { text-align: center; }
+  .linenr { font-size:smaller }
+  .code-highlighted {background-color:#ffff00;}
+  .org-info-js_info-navigation { border-style:none; }
+  #org-info-js_console-label { font-size:10px; font-weight:bold;
+                               white-space:nowrap; }
+  .org-info-js_search-highlight {background-color:#ffff00; color:#000000;
+                                 font-weight:bold; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*/-->
+</script>
+</head><body>
+<h1 class="title">JNIBasicPrinciple</h1>
+
+
+
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1 JNI的基本原理 </a>
+<ul>
+<li><a href="#sec-1.1">1.1 在Java中调用C库函数 </a>
+<ul>
+<li><a href="#sec-1.1.1">1.1.1 第一步 编写Java代码 </a></li>
+<li><a href="#sec-1.1.2">1.1.2 第二步 编译Java代码 </a></li>
+<li><a href="#sec-1.1.3">1.1.3 第三步 生成C语言头文件 </a></li>
+<li><a href="#sec-1.1.4">1.1.4 第四步 编写C/C++代码 </a></li>
+<li><a href="#sec-1.1.5">1.1.5 第五步 生成C共享库 </a></li>
+<li><a href="#sec-1.1.6">1.1.6 第六步 运行Java程序 </a></li>
+</ul>
+</li>
+<li><a href="#sec-1.2">1.2 小结 </a></li>
+</ul>
+</li>
+<li><a href="#sec-2">2 调用JNI函数 </a>
+<ul>
+<li><a href="#sec-2.1">2.1 调用JNI函数的示例程序结构 </a></li>
+<li><a href="#sec-2.2">2.2 Java层代码 (JniFuncMain.java) </a></li>
+<li><a href="#sec-2.3">2.3 分析JNI本地函数代码 </a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1">1 JNI的基本原理 </h2>
+<div id="text-1">
+
+
+
+</div>
+
+<div id="outline-container-1.1" class="outline-3">
+<h3 id="sec-1.1">1.1 在Java中调用C库函数 </h3>
+<div id="text-1.1">
+
+
+<p>
+开发流程
+
+</p>
+<hr/>
+<p>
+在Java代码中通过JNI调用C函数的步骤如下：
+</p>
+<p>
+第一步： 编写Java代码
+</p>
+<p>
+第二步： 编译Java代码
+</p>
+<p>
+第三步: 生成C语言头文件
+</p>
+<p>
+第四步： 编写C代码
+</p>
+<p>
+第五步： 生成C共享库
+</p>
+<p>
+第六步： 运行Java程序
+</p>
+
+</div>
+
+<div id="outline-container-1.1.1" class="outline-4">
+<h4 id="sec-1.1.1">1.1.1 第一步 编写Java代码 </h4>
+<div id="text-1.1.1">
+
+
+<p>
+JNI方法是在Java代码中声明的。
+</p>
+<p>
+在Java类中，使用"native"关键字，声明本地方法该方法与用C/C++编写的JNI本地函数相对应。"native"关键字告知Java编译器，在Java代码中带有该关键字的方法只是声明，具体由C/C++等其他语言编写实现。
+</p>
+<p>
+如果起吊方法前的native关键字，编译代码时，Java编译器就会报错，抛出编译错误，告知该方法没有实现。
+</p>
+<p>
+调用System.loadLibrary()方法加载具体的实现本地方法的C运行库。System.loadLibrary()方法加载由字符串参数指定的本地库，在不同操作系统平台下，加载的C运行库不同。
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-1.1.2" class="outline-4">
+<h4 id="sec-1.1.2">1.1.2 第二步 编译Java代码 </h4>
+<div id="text-1.1.2">
+
+
+
+
+
+<pre class="src src-java">
+<span style="color: #228b22;">javac</span> xxx.<span style="color: #b8860b;">java</span>
+</pre>
+
+
+
+
+<p>
+生成 xxx.class
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-1.1.3" class="outline-4">
+<h4 id="sec-1.1.3">1.1.3 第三步 生成C语言头文件 </h4>
+<div id="text-1.1.3">
+
+
+
+
+
+<pre class="src src-java">
+javah -classpath path classname
+</pre>
+
+
+
+
+<p>
+生成classname.h
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><colgroup><col align="left"></col>
+</colgroup>
+<thead>
+<tr><th>Java类型</th><th>Java本地类型</th></tr>
+</thead>
+<tbody>
+</tbody>
+<tbody>
+<tr><td>byte</td><td>jbyte</td></tr>
+<tr><td>short</td><td>jshort</td></tr>
+<tr><td>int</td><td>jint</td></tr>
+<tr><td>long</td><td>jlong</td></tr>
+<tr><td>float</td><td>jfloat</td></tr>
+<tr><td>double</td><td>jdouble</td></tr>
+<tr><td>char</td><td>jchar</td></tr>
+<tr><td>boolean</td><td>jboolean</td></tr>
+<tr><td>void</td><td>void</td></tr>
+</tbody>
+</table>
+
+
+<p>
+Java本地类型也提供了另外三种类型
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><colgroup><col align="left"></col>
+</colgroup>
+<thead>
+<tr><th>java引用类型</th><th>java本地类型</th></tr>
+</thead>
+<tbody>
+</tbody>
+<tbody>
+<tr><td>对象</td><td>Jobject</td></tr>
+<tr><td>String</td><td>Jstring</td></tr>
+</tbody>
+</table>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1.1.4" class="outline-4">
+<h4 id="sec-1.1.4">1.1.4 第四步 编写C/C++代码 </h4>
+<div id="text-1.1.4">
+
+
+<p>
+编写xxx.c文件
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-1.1.5" class="outline-4">
+<h4 id="sec-1.1.5">1.1.5 第五步 生成C共享库 </h4>
+<div id="text-1.1.5">
+
+
+
+
+
+<pre class="src src-sh">
+cc -I/usr/lib/jvm/java-6-sun/include/linux
+   -I/usr/lib/jvm/java-6-sun/include/
+   -fPIC -shared -o libxxx.so xxx.c
+</pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1.1.6" class="outline-4">
+<h4 id="sec-1.1.6">1.1.6 第六步 运行Java程序 </h4>
+<div id="text-1.1.6">
+
+
+
+
+
+<pre class="src src-java">
+java -cp path -o java.library.path=<span style="color: #bc8f8f;">'path'</span> classname
+</pre>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-1.2" class="outline-3">
+<h3 id="sec-1.2">1.2 小结 </h3>
+<div id="text-1.2">
+
+
+<p>
+（1）在java类中声明本地方法
+</p>
+<p>
+（2）使用javah命令，生成包含JNI本地函数原型的头文件
+</p>
+<p>
+（3）实现JNI本地函数
+</p>
+<p>
+（4）生成C共享库
+</p>
+<p>
+（5）通过JNI，调用JNI本地函数
+</p>
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-2">
+<h2 id="sec-2">2 调用JNI函数 </h2>
+<div id="text-2">
+
+
+<p>
+在由C语言编写的JNI本地函数中如何控制Java端的代码
+</p>
+<ul>
+<li>
+创建Java对象
+
+</li>
+<li>
+访问静态成员域
+
+</li>
+<li>
+调用类的静态方法
+
+</li>
+<li>
+访问Java对象的成员变量
+
+</li>
+<li>
+访问Java对象的方法
+
+</li>
+</ul>
+
+</div>
+
+<div id="outline-container-2.1" class="outline-3">
+<h3 id="sec-2.1">2.1 调用JNI函数的示例程序结构 </h3>
+<div id="text-2.1">
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2.2" class="outline-3">
+<h3 id="sec-2.2">2.2 Java层代码 (JniFuncMain.java) </h3>
+<div id="text-2.2">
+
+
+<p>
+1.JniFuncMain类
+</p>
+
+
+<pre class="src src-java">
+<span style="color: #a020f0;">public</span> <span style="color: #a020f0;">class</span> <span style="color: #228b22;">JniFuncMain</span>
+{
+    print <span style="color: #a020f0;">static</span> <span style="color: #228b22;">int</span> <span style="color: #b8860b;">staticIntField</span> = 300;
+
+    <span style="color: #b22222;">// </span><span style="color: #b22222;">&#21152;&#36733;&#26412;&#22320;&#24211;
+</span>    <span style="color: #a020f0;">static</span> { System.loadLibrary(<span style="color: #bc8f8f;">"jnifunc"</span>); }
+
+    <span style="color: #b22222;">// </span><span style="color: #b22222;">&#26412;&#22320;&#26041;&#27861;&#22768;&#26126;
+</span>
+    <span style="color: #a020f0;">public</span> <span style="color: #a020f0;">static</span> <span style="color: #a020f0;">native</span> <span style="color: #228b22;">JniTest</span> <span style="color: #0000ff;">createJniObject</span>();
+
+    <span style="color: #a020f0;">public</span> <span style="color: #a020f0;">static</span> <span style="color: #228b22;">void</span> <span style="color: #0000ff;">main</span>(<span style="color: #228b22;">String</span>[] <span style="color: #b8860b;">args</span>)
+    {
+        <span style="color: #b22222;">// </span><span style="color: #b22222;">&#20174;&#26412;&#22320;&#20195;&#30721;&#29983;&#25104;JniTest&#23545;&#35937;
+</span>        System.out.println(<span style="color: #bc8f8f;">"[Java] createJniObject() &#35843;&#29992;&#26412;&#22320;&#26041;&#27861;"</span>);
+        <span style="color: #228b22;">JniTest</span> <span style="color: #b8860b;">jniObj</span> = createJniObject();
+
+        <span style="color: #b22222;">// </span><span style="color: #b22222;">&#35843;&#29992;JniTest&#23545;&#35937;&#30340;&#26041;&#27861;
+</span>        jniObj.callTest();
+    }
+}
+</pre>
+
+
+
+<p>
+JniFuncMain.java中的JniFuncMain类
+</p>
+<ul>
+<li>
+通过java静态块，在调用本地方法前，加载jnifunc运行库
+
+</li>
+<li>
+使用static关键字声明本地方法createJniObject()在调研那个此方法时不需要创建对象，直接通过JniFuncMain类调用即可
+
+</li>
+<li>
+不使用Java语言的new运算符，调用与createJniObject()本地方法相对应的C函数生成JniTest类的对象，在将对象的引用保存在jniObj引用变量中
+
+</li>
+<li>
+调用jniObj对象的callTest()方法
+
+</li>
+</ul>
+
+<p>2.JniTest类
+</p>
+
+
+
+<pre class="src src-java">
+<span style="color: #a020f0;">class</span> <span style="color: #228b22;">JniTest</span> 
+{
+    <span style="color: #a020f0;">private</span> <span style="color: #228b22;">int</span> <span style="color: #b8860b;">intField</span>;
+    <span style="color: #b22222;">//</span><span style="color: #b22222;">&#26500;&#36896;&#26041;&#27861;
+</span>
+    <span style="color: #a020f0;">public</span> JniTest(<span style="color: #228b22;">int</span> <span style="color: #b8860b;">num</span>)
+    {
+        intField = num;
+        System.out.println(<span style="color: #bc8f8f;">"[Java] &#35843;&#29992;JniTest&#23545;&#35937;&#30340;&#26500;&#36896;&#26041;&#27861;:intField = "</span> + intField);
+    }
+
+    <span style="color: #b22222;">// </span><span style="color: #b22222;">&#27492;&#26041;&#27861;&#30001;JNI&#26412;&#22320;&#20989;&#25968;&#35843;&#29992;
+</span>    <span style="color: #a020f0;">public</span> <span style="color: #228b22;">int</span> <span style="color: #0000ff;">callByNative</span>(<span style="color: #228b22;">int</span> <span style="color: #b8860b;">num</span>)
+    {
+        System.out.println(<span style="color: #bc8f8f;">"[Java] JniTest &#23545;&#35937;&#30340; callByNative("</span>+ num +<span style="color: #bc8f8f;">")&#35843;&#29992;"</span>);
+        <span style="color: #a020f0;">return</span> num;
+    }
+
+    <span style="color: #a020f0;">public</span> <span style="color: #228b22;">void</span> <span style="color: #0000ff;">callTest</span>() 
+    {
+        System.out.println(<span style="color: #bc8f8f;">"[Java] JniTest &#23545;&#35937;&#30340; callTest() &#26041;&#27861;&#35843;&#29992;&#65306;intField="</span>intField<span style="color: #ff0000; font-weight: bold;">"</span><span style="color: #bc8f8f;">);
+    }
+}
+</span></pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2.3" class="outline-3">
+<h3 id="sec-2.3">2.3 分析JNI本地函数代码 </h3>
+<div id="text-2.3">
+
+
+<ol>
+<li>
+JniFuncMain.h头文件
+
+</li>
+</ol>
+
+<p>使用javah命令，生成本地方法的函数原型
+</p>
+
+
+<pre class="src src-java">
+<span style="color: #228b22;">javah</span> <span style="color: #b8860b;">JniFuncMain</span>
+</pre>
+
+
+
+<p>
+JniFuncMain.h
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #b22222;">/* </span><span style="color: #b22222;">DO NOT EDIT THIS FILE - it is machine generated </span><span style="color: #b22222;">*/</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #bc8f8f;">&lt;jni.h&gt;</span>
+<span style="color: #b22222;">/* </span><span style="color: #b22222;">Header for class JniFuncMain </span><span style="color: #b22222;">*/</span>
+
+<span style="color: #da70d6;">#if</span><span style="color: #da70d6;">n</span><span style="color: #da70d6;">def</span> _Included_JniFuncMain
+<span style="color: #da70d6;">#define</span> <span style="color: #b8860b;">_Included_JniFuncMain</span>
+<span style="color: #da70d6;">#ifdef</span> __cplusplus
+<span style="color: #a020f0;">extern</span> <span style="color: #bc8f8f;">"C"</span> {
+<span style="color: #da70d6;">#endif</span>
+<span style="color: #b22222;">/*</span><span style="color: #b22222;">
+ * Class:     JniFuncMain
+ * Method:    createJniObject
+ * Signature: ()LJniTest;
+ </span><span style="color: #b22222;">*/</span>
+JNIEXPORT jobject <span style="color: #228b22;">JNICALL</span> <span style="color: #0000ff;">Java_JniFuncMain_CreateJniObject</span>(<span style="color: #228b22;">JNIEnv</span> *, jclass);
+<span style="color: #da70d6;">#ifdef</span> __cplusplus
+}
+<span style="color: #da70d6;">#endif</span>
+<span style="color: #da70d6;">#endif</span>
+</pre>
+
+
+
+
+<p>
+createJniObject()本地方法对应的JNI本地函数原型，形式如下
+</p>
+<p>
+JNIEXPORT jobject JNICALL Java<sub>JniFuncMain</sub><sub>createJniObject</sub>(JNIEnv *, jclass)
+</p>
+<ol>
+<li>
+jnifunc.cpp 文件
+
+
+
+
+<pre class="src src-C++">
+JNIEXPORT jobject JNICALL Java_JniFuncMain_createJniObject(JNIEnv *env, jclass clazz)
+{
+    jclass targetClass;
+    jmethodID mid;
+    jobject newObject;
+    jstring helloStr;
+    jfieldID fid;
+    jint staticIntField;
+    jint result;
+
+    // &#33719;&#21462;JniFuncMain&#31867;&#30340;staticIntField&#21464;&#37327;&#20540;
+    fid = env-&gt;GetStaticFieldID(clazz, <span style="color: #bc8f8f;">"staticIntField"</span>, <span style="color: #bc8f8f;">"I"</span>);
+    staticIntField = env-&gt;GetStaticIntField(clazz, fid);
+    printf(<span style="color: #bc8f8f;">"[CPP] &#33719;&#21462;JniFuncMain&#31867;&#30340;staticIntField&#20540;\n"</span>);
+    printf(<span style="color: #bc8f8f;">"         JniFuncMain.staticIntField = %d\n"</span>, staticIntField);
+
+    // &#26597;&#25214;&#29983;&#25104;&#23545;&#35937;&#30340;&#31867;
+    targetClass = new-&gt;NewObject(targetClass, mid , 100);
+
+    // &#26597;&#25214;&#26500;&#36896;&#26041;&#27861;
+    mid = env-&gt;GetMethodID(targetClass, <span style="color: #bc8f8f;">"&lt;init&gt;"</span>, <span style="color: #bc8f8f;">"(I)V"</span>);
+
+    // &#29983;&#25104;JniTest&#23545;&#35937;(&#36820;&#22238;&#23545;&#35937;&#30340;&#24341;&#29992;)
+    printf(<span style="color: #bc8f8f;">"[CPP]JniTest&#23545;&#35937;&#29983;&#25104;\n"</span>);
+    newObject = env-&gt;NewObject(targetClass, mid, 100);
+
+    // &#35843;&#29992;&#23545;&#35937;&#30340;&#26041;&#27861;
+    mid = env-&gt;GetMethodID(targetClass,<span style="color: #bc8f8f;">"callByNative"</span>, <span style="color: #bc8f8f;">"(I)I"</span>);
+    result = env-&gt;CallIntMethod(newObject, mid , 200);
+
+    //&#35774;&#32622;JniObject&#23545;&#35937;&#30340;intField&#20540;
+    fid = env-&gt;GetFieldID(targetClass, <span style="color: #bc8f8f;">"intField"</span>, <span style="color: #bc8f8f;">"I"</span>);
+    printf(<span style="color: #bc8f8f;">"[CPP] &#35774;&#32622;JniTest&#23545;&#35937;&#30340;intField&#20540;&#20026;200\n"</span>);
+    env-&gt;SetIntField(newObject, fid, result);
+
+    //&#36820;&#22238;&#23545;&#35937;&#30340;&#24341;&#29992;
+    return newObject;
+}
+</pre>
+
+
+
+
+</li>
+<li>
+通过JNI,获取成员变量值
+
+</li>
+</ol>
+
+<p>下面代码用于获取JniFuncMaind类的staticIntField成员变量的值
+</p>
+
+
+
+<pre class="src src-c">
+<span style="color: #b22222;">// </span><span style="color: #b22222;">1. &#26597;&#25214;&#21547;&#26377;&#24453;&#25918;&#25991;&#25104;&#21592;&#21464;&#37327;&#30340;JniFuncMain&#31867;&#30340;jclass&#20540;
+</span><span style="color: #b22222;">// </span><span style="color: #b22222;">2. &#33719;&#21462;staticField&#21464;&#37327;&#30340;ID&#20540;
+</span>fid = env-&gt;GetStaticFieldID(clazz, <span style="color: #bc8f8f;">"staticIntField"</span>, <span style="color: #bc8f8f;">"I"</span>);
+<span style="color: #b22222;">// </span><span style="color: #b22222;">3. &#35835;&#21462;jclass&#19982;fieldid&#25351;&#23450;&#30340;&#25104;&#21592;&#21464;&#37327;&#20540;
+</span>staticIntField = env-&gt;GetStaticIntField(clazz, fid);
+</pre>
+
+
+
+
+<p>
+程序通过JNI访问java类/对象的成员变量安如下顺序进行：
+</p>
+<p>
+(1) 查找含待放文的成员变量的Java类的jclass值
+(2) 获取此类成员变量的jfieldID值。若成员变量为静态变量，则调用名称为GetStaticFieldID()的JNI函数；若待访问的成员变量是普通对象，则调用名称为GetFieldID()的JNI函数。
+(3) 使用12中获得的jclass与jfieldID值，获取或设置成员变量值。
+</p>
+<p>
+依据以上顺序，待读取树脂的staticIntField成员变量在JniFuncMain类被声明。JniFuncMain类的jclass值被传递给JNI本地函数java<sub>JniFuncMain</sub><sub>createJniObject</sub>()的第二个参数中，若想获取指定类的jclass值，调用JNI函数FindClass()即可。
+</p>
+<p>
+若想在本地代码中访问Java的成员变量，必须获取相应成员变量的ID值。例子中成员变量的ID保存在jfieldID类型的变量中。由于待读取数值的staticIntField成员变量时JniFUncMain类的静态变量，在获取staticIntField的ID时，影调用名称为GetStaticFieldID()的JNI函数。
+</p>
+<p>
+在例子中的GetStaticFieldID()函数，与下表中的GetStaticFieldID()函数原型有些不同，函数原型中带有四个参数，而代码中仅有三个，缺少了env参数，这不是错误，而是与所用的编程语言相关。具体请参考后面Tip中关于JNI函数编码风格的说明。
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><colgroup><col align="left"></col>
+</colgroup>
+<thead>
+<tr><th>JNI函数 - GetStaticFieldID()</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>jfield GetStaticFieldID(JNIEnv *env, jclass clazz, const char*name, const char *signature)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>返回指定类的指定的静态变量的jfieldID的值</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>env-JNI接口指针 clazz-包含成员变量的类的jclass name-成员变量名 signature-成员变量签名</td></tr>
+</tbody>
+</table>
+
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><colgroup><col align="left"></col>
+</colgroup>
+<thead>
+<tr><th>JNI函数 - GetFieldID()</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>jfield GetFieldID(JNIEnv *env, jclass clazz, const char *name, const char *signature)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>返回对象中指定的成员变量的jfieldID的值</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>env-JNI接口指针 clazz-包含成员变量的类的jclass name-成员变量名 signatuer-成员变量签名</td></tr>
+</tbody>
+</table>
+
+
+<p>
+以上两个函数都要去提供成员变量的签名。成员变量与成员方法都拥有签名，使用&lt;JDK<sub>HOME&gt</sub>;/bin目录下的javap命令(java反编译器)，可以获取成员变量活成员方法签名。
+</p>
+<p>
+Tip: 在JNI中获取成员变量活成员方法签名
+</p>
+<p>
+形式： javap [选项] '类名'
+</p>
+<p>
+选项： -s 输出java签名
+-p 输出所有类及成员
+</p>
+<p>
+在获取成员变量所在的类与ID后，根据各个成员变量的类型与存储区块(static或non-static)，调用相应的JNI函数读取成员变量值即可。在JNI中有两种函数用来获取成员便令的值，分别为Get&lt;type&gt;Field函数与GetStatic&lt;type&gt; Field函数。&lt;type&gt;指Int, Char, Double等基本数据类型，具体参考JNI文档。
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><colgroup><col align="left"></col>
+</colgroup>
+<thead>
+<tr><th>JNI函数 GetStatic&lt;type&gt;Field</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>&lt;jnitype&gt;GetStatic&lt;type&gt;Field(JNIEnv *env, jclass clazz, jfieldID fieldID)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>返回clazz类中ID为fieldID的静态变量的值</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>env-JNI接口指针 clazz-包含成员变量的类 fieldID-成员变量的ID</td></tr>
+</tbody>
+<tbody>
+<tr><td>参考</td><td>&lt;type&gt;指Object、Boolean、Byte、Char、Short、Int、Long、Float、Double九种基本类型</td></tr>
+<tr><td></td><td>返回类型&lt;jnitype&gt;指jobject、jboolean、jbyte、jchar、jshort、jint、jlong、jfloat、jdouble九种基本类型</td></tr>
+</tbody>
+<tbody>
+<tr><td>返回值</td><td>返回静态成员变量的值</td></tr>
+</tbody>
+</table>
+
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><colgroup><col align="left"></col>
+</colgroup>
+<thead>
+<tr><th>JNI函数 Get&lt;type&gt;Field</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>&lt;jnitype&gt;Get&lt;type&gt;Field(JNIEnv *env, Jobject obj, jfieldID fieldID)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>返回obj对象中ID为fieldID的成员变量的值</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>env-JNI接口指针</td></tr>
+<tr><td></td><td>obj-包含成员变量的对象</td></tr>
+<tr><td></td><td>fieldID-成员变量的ID</td></tr>
+</tbody>
+<tbody>
+<tr><td>返回值</td><td>返回成员变量的值</td></tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div id="postamble"><p class="author"> Author: yangyang
+<a href="mailto:yangyang@wizard">&lt;yangyang@wizard&gt;</a>
+</p>
+<p class="date"> Date: 2012-07-30 16:58:42 CST</p>
+<p>HTML generated by org-mode 6.21b in emacs 23</p>
+</div></body>
+</html>
