@@ -627,7 +627,7 @@ public class InvocationAPiTest
     }
 }
 #+END_SRC
-仅含有一个main()方法，该main()方法是一个静态方法，带有一个字符串对象数组，在方法体中仅有一条输出语句，用来降低一个数组元素args[ 0]中的字符串输出到控制台上。
+=仅含有一个main()方法，该main()方法是一个静态方法，带有一个字符串对象数组，在方法体中仅有一条输出语句，用来降低一个数组元素args[0]中的字符串输出到控制台上。=
 
 *** 分析C代码 invocationApi.c
 #+BEGIN_SRC c
@@ -789,7 +789,7 @@ args[0] = "Hello Invocation API!"
 #+BEGIN_SRC c
 (*env)->CallStaticVoidMethod(env, cls, mid, args);
 #+END_SRC
-本行代码通过CallStaticVoidMethod()函数调用InvocationApiTest类的main()方法。在上面创建的Stringp[]数组是CallStaticVoidMethod()函数的第四个参数，该参数会被传递给InvocationApiTest类的main()方法。当InvocationApiTest类的main()方法被调用执行时，它会向控制台输出args字符串数组的args[ 0]元素中的字符串。
+=本行代码通过CallStaticVoidMethod()函数调用InvocationApiTest类的main()方法。在上面创建的Stringp[]数组是CallStaticVoidMethod()函数的第四个参数，该参数会被传递给InvocationApiTest类的main()方法。当InvocationApiTest类的main()方法被调用执行时，它会向控制台输出args字符串数组的args[0]元素中的字符串。=
 
 * 直接注册JNI本地函数
 
@@ -922,7 +922,7 @@ typedef struct {
 |-------------------------+---------------------------------------------------------------------------------------------------------|
 | 返回值                  | 若执行成功，返回数组引用；否则返回NULL                                                                            |
 
-总结一下，本节中通过JNI_OnLoad()函数将Java本地方法与JNI本地函数映射起来。
+=总结一下，本节中通过JNI_OnLoad()函数将Java本地方法与JNI本地函数映射起来。=
 
 ** Android中的应用举例
 
@@ -944,7 +944,7 @@ Andoird NDK ( Native Development Kit )
 
 ** 使用Android NDK 开发步骤
 
-设置好NDK环境变量后，在<NDK_HOME>/apps目录下，会看到一些NDK使用示例程序
+=设置好NDK环境变量后，在<NDK_HOME>/apps目录下，会看到一些NDK使用示例程序=
 
 + hello-jni: 调用本地库，接收"Hello from JNI"字符串，并通过TextView将其输出
 

@@ -6,7 +6,7 @@ lang="en" xml:lang="en">
 <title>JNI与NDK</title>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2012-07-31 17:10:05 CST"/>
+<meta name="generated" content="2012-07-31 17:29:19 CST"/>
 <meta name="author" content="Wizard.Yang"/>
 <style type="text/css">
  <!--/*--><![CDATA[/*><!--*/
@@ -1248,7 +1248,7 @@ env-&gt;SetIntField(newObject, fid, resutl);
 
 
 <p>
-仅含有一个main()方法，该main()方法是一个静态方法，带有一个字符串对象数组，在方法体中仅有一条输出语句，用来降低一个数组元素args[ 0]中的字符串输出到控制台上。
+<code>仅含有一个main()方法，该main()方法是一个静态方法，带有一个字符串对象数组，在方法体中仅有一条输出语句，用来降低一个数组元素args[1]中的字符串输出到控制台上。</code>
 </p>
 </div>
 
@@ -1523,7 +1523,7 @@ args[0] = <span style="color: #8fbc8f; font-style: italic;">"Hello Invocation AP
 
 
 <p>
-本行代码通过CallStaticVoidMethod()函数调用InvocationApiTest类的main()方法。在上面创建的Stringp[]数组是CallStaticVoidMethod()函数的第四个参数，该参数会被传递给InvocationApiTest类的main()方法。当InvocationApiTest类的main()方法被调用执行时，它会向控制台输出args字符串数组的args[ 0]元素中的字符串。
+<code>本行代码通过CallStaticVoidMethod()函数调用InvocationApiTest类的main()方法。在上面创建的Stringp[]数组是CallStaticVoidMethod()函数的第四个参数，该参数会被传递给InvocationApiTest类的main()方法。当InvocationApiTest类的main()方法被调用执行时，它会向控制台输出args字符串数组的args[1]元素中的字符串。</code>
 </p>
 </div>
 </div>
@@ -1743,7 +1743,7 @@ JNIEXPORT jint <span style="color: #9acd32; font-weight: bold;">JNICALL</span> <
 
 
 <p>
-总结一下，本节中通过JNI<sub>OnLoad</sub>()函数将Java本地方法与JNI本地函数映射起来。
+<code>总结一下，本节中通过JNI_OnLoad()函数将Java本地方法与JNI本地函数映射起来。</code>
 </p>
 </div>
 
@@ -1806,7 +1806,7 @@ NDK开发相关的文档、示例、规范
 
 
 <p>
-设置好NDK环境变量后，在&lt;NDK<sub>HOME&gt</sub>;/apps目录下，会看到一些NDK使用示例程序
+<code>设置好NDK环境变量后，在&lt;NDK_HOME&gt;/apps目录下，会看到一些NDK使用示例程序</code>
 </p>
 <ul>
 <li>
@@ -1838,12 +1838,21 @@ bitmap-plasma: 一个使用本地代码访问Android Bitmap对象的像素缓存
 <h3 id="sec-5.3">5.3 小结 </h3>
 <div id="text-5.3">
 
+
+
 </div>
+</div>
+</div>
+<div id="footnotes">
+<h2 class="footnotes">Footnotes: </h2>
+<div id="text-footnotes">
+<p class="footnote"><sup><a class="footnum" name="fn.1" href="#fnr.1">1</a></sup> FOOTNOTE DEFINITION NOT FOUND: 0
+</p>
 </div>
 </div>
 <div id="postamble"><p class="author"> Author: Wizard.Yang
 <a href="mailto:xblandy@gmail.com">&lt;xblandy@gmail.com&gt;</a>
 </p>
-<p class="date"> Date: 2012-07-31 17:10:05 CST</p>
+<p class="date"> Date: 2012-07-31 17:29:19 CST</p>
 </div></body>
 </html>
