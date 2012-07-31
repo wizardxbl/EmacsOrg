@@ -3,11 +3,11 @@
 <html xmlns="http://www.w3.org/1999/xhtml"
 lang="en" xml:lang="en">
 <head>
-<title>JNIBasicPrinciple</title>
+<title>JNI与NDK</title>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2012-07-30 16:58:42 CST"/>
-<meta name="author" content="yangyang"/>
+<meta name="generated" content="2012-07-31 17:10:05 CST"/>
+<meta name="author" content="Wizard.Yang"/>
 <style type="text/css">
  <!--/*--><![CDATA[/*><!--*/
   html { font-family: Times, serif; font-size: 12pt; }
@@ -64,9 +64,10 @@ lang="en" xml:lang="en">
 /*]]>*/-->
 </script>
 </head><body>
-<h1 class="title">JNIBasicPrinciple</h1>
+<h1 class="title">JNI与NDK</h1>
 
-
+<p>参考《Android框架揭秘》
+</p>
 
 <div id="table-of-contents">
 <h2>Table of Contents</h2>
@@ -91,7 +92,39 @@ lang="en" xml:lang="en">
 <ul>
 <li><a href="#sec-2.1">2.1 调用JNI函数的示例程序结构 </a></li>
 <li><a href="#sec-2.2">2.2 Java层代码 (JniFuncMain.java) </a></li>
-<li><a href="#sec-2.3">2.3 分析JNI本地函数代码 </a></li>
+<li><a href="#sec-2.3">2.3 分析JNI本地函数代码 </a>
+<ul>
+<li>
+<ul>
+<li><a href="#sec-2.3.1">2.3.1 JniFuncMain.h头文件 </a></li>
+<li><a href="#sec-2.3.2">2.3.2 jnifunc.cpp 文件 </a></li>
+<li><a href="#sec-2.3.3">2.3.3 通过JNI,获取成员变量值 </a></li>
+<li><a href="#sec-2.3.4">2.3.4 调用Java方法 </a></li>
+<li><a href="#sec-2.3.5">2.3.5 通过JNI设置成员变量的值 </a></li>
+</ul></li>
+</ul></li>
+</ul>
+</li>
+<li><a href="#sec-3">3 在C程序中运行Java类 </a>
+<ul>
+<li><a href="#sec-3.1">3.1 Invocaton API 应用示例 </a>
+<ul>
+<li><a href="#sec-3.1.1">3.1.1 分析Java代码 InvocationApiTest.java </a></li>
+<li><a href="#sec-3.1.2">3.1.2 分析C代码 invocationApi.c </a></li>
+</ul></li>
+</ul>
+</li>
+<li><a href="#sec-4">4 直接注册JNI本地函数 </a>
+<ul>
+<li><a href="#sec-4.1">4.1 加载本地库时，注册JNI本地函数 </a></li>
+<li><a href="#sec-4.2">4.2 Android中的应用举例 </a></li>
+</ul>
+</li>
+<li><a href="#sec-5">5 使用Android NDK开发 </a>
+<ul>
+<li><a href="#sec-5.1">5.1 安装Androdi NDK </a></li>
+<li><a href="#sec-5.2">5.2 使用Android NDK 开发步骤 </a></li>
+<li><a href="#sec-5.3">5.3 小结 </a></li>
 </ul>
 </li>
 </ul>
@@ -170,7 +203,7 @@ JNI方法是在Java代码中声明的。
 
 
 <pre class="src src-java">
-<span style="color: #228b22;">javac</span> xxx.<span style="color: #b8860b;">java</span>
+<span style="color: #9acd32; font-weight: bold;">javac</span> xxx.<span style="color: #add8e6; font-weight: bold; font-style: italic;">java</span>
 </pre>
 
 
@@ -287,7 +320,7 @@ cc -I/usr/lib/jvm/java-6-sun/include/linux
 
 
 <pre class="src src-java">
-java -cp path -o java.library.path=<span style="color: #bc8f8f;">'path'</span> classname
+java -cp path -o java.library.path=<span style="color: #8fbc8f; font-style: italic;">'path'</span> classname
 </pre>
 
 
@@ -376,24 +409,24 @@ java -cp path -o java.library.path=<span style="color: #bc8f8f;">'path'</span> c
 
 
 <pre class="src src-java">
-<span style="color: #a020f0;">public</span> <span style="color: #a020f0;">class</span> <span style="color: #228b22;">JniFuncMain</span>
+<span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #add8e6; font-weight: bold;">class</span> <span style="color: #9acd32; font-weight: bold;">JniFuncMain</span>
 {
-    print <span style="color: #a020f0;">static</span> <span style="color: #228b22;">int</span> <span style="color: #b8860b;">staticIntField</span> = 300;
+    print <span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">staticIntField</span> = 300;
 
-    <span style="color: #b22222;">// </span><span style="color: #b22222;">&#21152;&#36733;&#26412;&#22320;&#24211;
-</span>    <span style="color: #a020f0;">static</span> { System.loadLibrary(<span style="color: #bc8f8f;">"jnifunc"</span>); }
+    <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#21152;&#36733;&#26412;&#22320;&#24211;
+</span>    <span style="color: #add8e6; font-weight: bold;">static</span> { System.loadLibrary(<span style="color: #8fbc8f; font-style: italic;">"jnifunc"</span>); }
 
-    <span style="color: #b22222;">// </span><span style="color: #b22222;">&#26412;&#22320;&#26041;&#27861;&#22768;&#26126;
+    <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#26412;&#22320;&#26041;&#27861;&#22768;&#26126;
 </span>
-    <span style="color: #a020f0;">public</span> <span style="color: #a020f0;">static</span> <span style="color: #a020f0;">native</span> <span style="color: #228b22;">JniTest</span> <span style="color: #0000ff;">createJniObject</span>();
+    <span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #add8e6; font-weight: bold;">native</span> <span style="color: #9acd32; font-weight: bold;">JniTest</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">createJniObject</span>();
 
-    <span style="color: #a020f0;">public</span> <span style="color: #a020f0;">static</span> <span style="color: #228b22;">void</span> <span style="color: #0000ff;">main</span>(<span style="color: #228b22;">String</span>[] <span style="color: #b8860b;">args</span>)
+    <span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">main</span>(<span style="color: #9acd32; font-weight: bold;">String</span>[] <span style="color: #add8e6; font-weight: bold; font-style: italic;">args</span>)
     {
-        <span style="color: #b22222;">// </span><span style="color: #b22222;">&#20174;&#26412;&#22320;&#20195;&#30721;&#29983;&#25104;JniTest&#23545;&#35937;
-</span>        System.out.println(<span style="color: #bc8f8f;">"[Java] createJniObject() &#35843;&#29992;&#26412;&#22320;&#26041;&#27861;"</span>);
-        <span style="color: #228b22;">JniTest</span> <span style="color: #b8860b;">jniObj</span> = createJniObject();
+        <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#20174;&#26412;&#22320;&#20195;&#30721;&#29983;&#25104;JniTest&#23545;&#35937;
+</span>        System.out.println(<span style="color: #8fbc8f; font-style: italic;">"[Java] createJniObject() &#35843;&#29992;&#26412;&#22320;&#26041;&#27861;"</span>);
+        <span style="color: #9acd32; font-weight: bold;">JniTest</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">jniObj</span> = createJniObject();
 
-        <span style="color: #b22222;">// </span><span style="color: #b22222;">&#35843;&#29992;JniTest&#23545;&#35937;&#30340;&#26041;&#27861;
+        <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#35843;&#29992;JniTest&#23545;&#35937;&#30340;&#26041;&#27861;
 </span>        jniObj.callTest();
     }
 }
@@ -429,27 +462,27 @@ JniFuncMain.java中的JniFuncMain类
 
 
 <pre class="src src-java">
-<span style="color: #a020f0;">class</span> <span style="color: #228b22;">JniTest</span> 
+<span style="color: #add8e6; font-weight: bold;">class</span> <span style="color: #9acd32; font-weight: bold;">JniTest</span> 
 {
-    <span style="color: #a020f0;">private</span> <span style="color: #228b22;">int</span> <span style="color: #b8860b;">intField</span>;
-    <span style="color: #b22222;">//</span><span style="color: #b22222;">&#26500;&#36896;&#26041;&#27861;
+    <span style="color: #add8e6; font-weight: bold;">private</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">intField</span>;
+    <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#26500;&#36896;&#26041;&#27861;
 </span>
-    <span style="color: #a020f0;">public</span> JniTest(<span style="color: #228b22;">int</span> <span style="color: #b8860b;">num</span>)
+    <span style="color: #add8e6; font-weight: bold;">public</span> JniTest(<span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">num</span>)
     {
         intField = num;
-        System.out.println(<span style="color: #bc8f8f;">"[Java] &#35843;&#29992;JniTest&#23545;&#35937;&#30340;&#26500;&#36896;&#26041;&#27861;:intField = "</span> + intField);
+        System.out.println(<span style="color: #8fbc8f; font-style: italic;">"[Java] &#35843;&#29992;JniTest&#23545;&#35937;&#30340;&#26500;&#36896;&#26041;&#27861;:intField = "</span> + intField);
     }
 
-    <span style="color: #b22222;">// </span><span style="color: #b22222;">&#27492;&#26041;&#27861;&#30001;JNI&#26412;&#22320;&#20989;&#25968;&#35843;&#29992;
-</span>    <span style="color: #a020f0;">public</span> <span style="color: #228b22;">int</span> <span style="color: #0000ff;">callByNative</span>(<span style="color: #228b22;">int</span> <span style="color: #b8860b;">num</span>)
+    <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#27492;&#26041;&#27861;&#30001;JNI&#26412;&#22320;&#20989;&#25968;&#35843;&#29992;
+</span>    <span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">callByNative</span>(<span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">num</span>)
     {
-        System.out.println(<span style="color: #bc8f8f;">"[Java] JniTest &#23545;&#35937;&#30340; callByNative("</span>+ num +<span style="color: #bc8f8f;">")&#35843;&#29992;"</span>);
-        <span style="color: #a020f0;">return</span> num;
+        System.out.println(<span style="color: #8fbc8f; font-style: italic;">"[Java] JniTest &#23545;&#35937;&#30340; callByNative("</span>+ num +<span style="color: #8fbc8f; font-style: italic;">")&#35843;&#29992;"</span>);
+        <span style="color: #add8e6; font-weight: bold;">return</span> num;
     }
 
-    <span style="color: #a020f0;">public</span> <span style="color: #228b22;">void</span> <span style="color: #0000ff;">callTest</span>() 
+    <span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">callTest</span>() 
     {
-        System.out.println(<span style="color: #bc8f8f;">"[Java] JniTest &#23545;&#35937;&#30340; callTest() &#26041;&#27861;&#35843;&#29992;&#65306;intField="</span>intField<span style="color: #ff0000; font-weight: bold;">"</span><span style="color: #bc8f8f;">);
+        System.out.println(<span style="color: #8fbc8f; font-style: italic;">"[Java] JniTest &#23545;&#35937;&#30340; callTest() &#26041;&#27861;&#35843;&#29992;&#65306;intField="</span>intField<span style="color: #ffa07a; font-weight: bold;">"</span><span style="color: #8fbc8f; font-style: italic;">);
     }
 }
 </span></pre>
@@ -466,19 +499,21 @@ JniFuncMain.java中的JniFuncMain类
 <div id="text-2.3">
 
 
-<ol>
-<li>
-JniFuncMain.h头文件
 
-</li>
-</ol>
+</div>
 
-<p>使用javah命令，生成本地方法的函数原型
+<div id="outline-container-2.3.1" class="outline-5">
+<h5 id="sec-2.3.1">2.3.1 JniFuncMain.h头文件 </h5>
+<div id="text-2.3.1">
+
+
+<p>
+使用javah命令，生成本地方法的函数原型
 </p>
 
 
 <pre class="src src-java">
-<span style="color: #228b22;">javah</span> <span style="color: #b8860b;">JniFuncMain</span>
+<span style="color: #9acd32; font-weight: bold;">javah</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">JniFuncMain</span>
 </pre>
 
 
@@ -489,25 +524,25 @@ JniFuncMain.h
 
 
 <pre class="src src-c">
-<span style="color: #b22222;">/* </span><span style="color: #b22222;">DO NOT EDIT THIS FILE - it is machine generated </span><span style="color: #b22222;">*/</span>
-<span style="color: #da70d6;">#include</span> <span style="color: #bc8f8f;">&lt;jni.h&gt;</span>
-<span style="color: #b22222;">/* </span><span style="color: #b22222;">Header for class JniFuncMain </span><span style="color: #b22222;">*/</span>
+<span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">DO NOT EDIT THIS FILE - it is machine generated </span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;jni.h&gt;</span>
+<span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">Header for class JniFuncMain </span><span style="color: #cccccc; font-style: italic;">*/</span>
 
-<span style="color: #da70d6;">#if</span><span style="color: #da70d6;">n</span><span style="color: #da70d6;">def</span> _Included_JniFuncMain
-<span style="color: #da70d6;">#define</span> <span style="color: #b8860b;">_Included_JniFuncMain</span>
-<span style="color: #da70d6;">#ifdef</span> __cplusplus
-<span style="color: #a020f0;">extern</span> <span style="color: #bc8f8f;">"C"</span> {
-<span style="color: #da70d6;">#endif</span>
-<span style="color: #b22222;">/*</span><span style="color: #b22222;">
+<span style="color: #0000cd;">#if</span><span style="color: #0000cd;">n</span><span style="color: #0000cd;">def</span> _Included_JniFuncMain
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">_Included_JniFuncMain</span>
+<span style="color: #0000cd;">#ifdef</span> __cplusplus
+<span style="color: #add8e6; font-weight: bold;">extern</span> <span style="color: #8fbc8f; font-style: italic;">"C"</span> {
+<span style="color: #0000cd;">#endif</span>
+<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">
  * Class:     JniFuncMain
  * Method:    createJniObject
  * Signature: ()LJniTest;
- </span><span style="color: #b22222;">*/</span>
-JNIEXPORT jobject <span style="color: #228b22;">JNICALL</span> <span style="color: #0000ff;">Java_JniFuncMain_CreateJniObject</span>(<span style="color: #228b22;">JNIEnv</span> *, jclass);
-<span style="color: #da70d6;">#ifdef</span> __cplusplus
+ </span><span style="color: #cccccc; font-style: italic;">*/</span>
+JNIEXPORT jobject <span style="color: #9acd32; font-weight: bold;">JNICALL</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">Java_JniFuncMain_CreateJniObject</span>(<span style="color: #9acd32; font-weight: bold;">JNIEnv</span> *, jclass);
+<span style="color: #0000cd;">#ifdef</span> __cplusplus
 }
-<span style="color: #da70d6;">#endif</span>
-<span style="color: #da70d6;">#endif</span>
+<span style="color: #0000cd;">#endif</span>
+<span style="color: #0000cd;">#endif</span>
 </pre>
 
 
@@ -519,9 +554,14 @@ createJniObject()本地方法对应的JNI本地函数原型，形式如下
 <p>
 JNIEXPORT jobject JNICALL Java<sub>JniFuncMain</sub><sub>createJniObject</sub>(JNIEnv *, jclass)
 </p>
-<ol>
-<li>
-jnifunc.cpp 文件
+</div>
+
+</div>
+
+<div id="outline-container-2.3.2" class="outline-5">
+<h5 id="sec-2.3.2">2.3.2 jnifunc.cpp 文件 </h5>
+<div id="text-2.3.2">
+
 
 
 
@@ -538,28 +578,28 @@ JNIEXPORT jobject JNICALL Java_JniFuncMain_createJniObject(JNIEnv *env, jclass c
     jint result;
 
     // &#33719;&#21462;JniFuncMain&#31867;&#30340;staticIntField&#21464;&#37327;&#20540;
-    fid = env-&gt;GetStaticFieldID(clazz, <span style="color: #bc8f8f;">"staticIntField"</span>, <span style="color: #bc8f8f;">"I"</span>);
+    fid = env-&gt;GetStaticFieldID(clazz, <span style="color: #8fbc8f; font-style: italic;">"staticIntField"</span>, <span style="color: #8fbc8f; font-style: italic;">"I"</span>);
     staticIntField = env-&gt;GetStaticIntField(clazz, fid);
-    printf(<span style="color: #bc8f8f;">"[CPP] &#33719;&#21462;JniFuncMain&#31867;&#30340;staticIntField&#20540;\n"</span>);
-    printf(<span style="color: #bc8f8f;">"         JniFuncMain.staticIntField = %d\n"</span>, staticIntField);
+    printf(<span style="color: #8fbc8f; font-style: italic;">"[CPP] &#33719;&#21462;JniFuncMain&#31867;&#30340;staticIntField&#20540;\n"</span>);
+    printf(<span style="color: #8fbc8f; font-style: italic;">"         JniFuncMain.staticIntField = %d\n"</span>, staticIntField);
 
     // &#26597;&#25214;&#29983;&#25104;&#23545;&#35937;&#30340;&#31867;
     targetClass = new-&gt;NewObject(targetClass, mid , 100);
 
     // &#26597;&#25214;&#26500;&#36896;&#26041;&#27861;
-    mid = env-&gt;GetMethodID(targetClass, <span style="color: #bc8f8f;">"&lt;init&gt;"</span>, <span style="color: #bc8f8f;">"(I)V"</span>);
+    mid = env-&gt;GetMethodID(targetClass, <span style="color: #8fbc8f; font-style: italic;">"&lt;init&gt;"</span>, <span style="color: #8fbc8f; font-style: italic;">"(I)V"</span>);
 
     // &#29983;&#25104;JniTest&#23545;&#35937;(&#36820;&#22238;&#23545;&#35937;&#30340;&#24341;&#29992;)
-    printf(<span style="color: #bc8f8f;">"[CPP]JniTest&#23545;&#35937;&#29983;&#25104;\n"</span>);
+    printf(<span style="color: #8fbc8f; font-style: italic;">"[CPP]JniTest&#23545;&#35937;&#29983;&#25104;\n"</span>);
     newObject = env-&gt;NewObject(targetClass, mid, 100);
 
     // &#35843;&#29992;&#23545;&#35937;&#30340;&#26041;&#27861;
-    mid = env-&gt;GetMethodID(targetClass,<span style="color: #bc8f8f;">"callByNative"</span>, <span style="color: #bc8f8f;">"(I)I"</span>);
+    mid = env-&gt;GetMethodID(targetClass,<span style="color: #8fbc8f; font-style: italic;">"callByNative"</span>, <span style="color: #8fbc8f; font-style: italic;">"(I)I"</span>);
     result = env-&gt;CallIntMethod(newObject, mid , 200);
 
     //&#35774;&#32622;JniObject&#23545;&#35937;&#30340;intField&#20540;
-    fid = env-&gt;GetFieldID(targetClass, <span style="color: #bc8f8f;">"intField"</span>, <span style="color: #bc8f8f;">"I"</span>);
-    printf(<span style="color: #bc8f8f;">"[CPP] &#35774;&#32622;JniTest&#23545;&#35937;&#30340;intField&#20540;&#20026;200\n"</span>);
+    fid = env-&gt;GetFieldID(targetClass, <span style="color: #8fbc8f; font-style: italic;">"intField"</span>, <span style="color: #8fbc8f; font-style: italic;">"I"</span>);
+    printf(<span style="color: #8fbc8f; font-style: italic;">"[CPP] &#35774;&#32622;JniTest&#23545;&#35937;&#30340;intField&#20540;&#20026;200\n"</span>);
     env-&gt;SetIntField(newObject, fid, result);
 
     //&#36820;&#22238;&#23545;&#35937;&#30340;&#24341;&#29992;
@@ -570,23 +610,26 @@ JNIEXPORT jobject JNICALL Java_JniFuncMain_createJniObject(JNIEnv *env, jclass c
 
 
 
-</li>
-<li>
-通过JNI,获取成员变量值
+</div>
 
-</li>
-</ol>
+</div>
 
-<p>下面代码用于获取JniFuncMaind类的staticIntField成员变量的值
+<div id="outline-container-2.3.3" class="outline-5">
+<h5 id="sec-2.3.3">2.3.3 通过JNI,获取成员变量值 </h5>
+<div id="text-2.3.3">
+
+
+<p>
+下面代码用于获取JniFuncMaind类的staticIntField成员变量的值
 </p>
 
 
 
 <pre class="src src-c">
-<span style="color: #b22222;">// </span><span style="color: #b22222;">1. &#26597;&#25214;&#21547;&#26377;&#24453;&#25918;&#25991;&#25104;&#21592;&#21464;&#37327;&#30340;JniFuncMain&#31867;&#30340;jclass&#20540;
-</span><span style="color: #b22222;">// </span><span style="color: #b22222;">2. &#33719;&#21462;staticField&#21464;&#37327;&#30340;ID&#20540;
-</span>fid = env-&gt;GetStaticFieldID(clazz, <span style="color: #bc8f8f;">"staticIntField"</span>, <span style="color: #bc8f8f;">"I"</span>);
-<span style="color: #b22222;">// </span><span style="color: #b22222;">3. &#35835;&#21462;jclass&#19982;fieldid&#25351;&#23450;&#30340;&#25104;&#21592;&#21464;&#37327;&#20540;
+<span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">1. &#26597;&#25214;&#21547;&#26377;&#24453;&#25918;&#25991;&#25104;&#21592;&#21464;&#37327;&#30340;JniFuncMain&#31867;&#30340;jclass&#20540;
+</span><span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">2. &#33719;&#21462;staticField&#21464;&#37327;&#30340;ID&#20540;
+</span>fid = env-&gt;GetStaticFieldID(clazz, <span style="color: #8fbc8f; font-style: italic;">"staticIntField"</span>, <span style="color: #8fbc8f; font-style: italic;">"I"</span>);
+<span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">3. &#35835;&#21462;jclass&#19982;fieldid&#25351;&#23450;&#30340;&#25104;&#21592;&#21464;&#37327;&#20540;
 </span>staticIntField = env-&gt;GetStaticIntField(clazz, fid);
 </pre>
 
@@ -709,13 +752,1098 @@ Tip: 在JNI中获取成员变量活成员方法签名
 </tbody>
 </table>
 
-</div>
-</div>
-</div>
-<div id="postamble"><p class="author"> Author: yangyang
-<a href="mailto:yangyang@wizard">&lt;yangyang@wizard&gt;</a>
+由于staticIntField是Int类型的静态成员变量，所以调用GetStaticFieldID()函数即可获取StaticIntField的值.
+
+<p>
+生成对象
 </p>
-<p class="date"> Date: 2012-07-30 16:58:42 CST</p>
-<p>HTML generated by org-mode 6.21b in emacs 23</p>
+<p>
+在JNI本地函数中如何生成Java类对象呢？
+
+</p>
+<hr/>
+<p>
+// 1. 查找生成对象的类
+targetClass = env-&gt;FindClass("JniTest");
+</p>
+<p>
+// 2. 查找类的构造方法
+mid = env-&gt;GetMethodID(targetClass, "&lt;init&gt;", "(I)V");
+</p>
+<p>
+// 3. 生成JniTest类对象(返回对象引用)
+newObject = env-&gt;NewObject(targetClass, mid, 100);
+
+</p>
+<hr/>
+
+<p>
+通过JNI函数，生成Java对象的顺序如下：
+</p><ol>
+<li>
+查找指定的类，并将查找到的类赋值给jclass类型的变量。
+
+</li>
+<li>
+查找java类构造方法的ID值，类型为jmethodID。
+
+</li>
+<li>
+生成java类对象
+
+</li>
+</ol>
+
+<p>首先调用JNI函数FindClass()，查找生成对象的类。将类名作为FindClass()函数参数，查找并获得jclass值
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>JNI函数 FindClass</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>jclass FindClass(JNIEnv *env, const char *name)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>查找name指定的Java类</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>env-JNI接口指针</td></tr>
+<tr><td></td><td>name-待查找的类名</td></tr>
+</tbody>
+<tbody>
+<tr><td>返回值</td><td>返回jclass的值</td></tr>
+</tbody>
+</table>
+
+
+<p>
+获取类的构造方法的ID并保存在jmethodID变量中。在JNI函数中有一个GetMethodID()函数用来获取指定类的指定方法ID。此函数除了可以用来获取指定类的构造方法的ID外，还可以获取类的其他的方法的ID。若指定的是静态方法，则可以调用JNI函数中的GetStaticMethodID()函数，获得指定静态方法的ID。
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>JNI函数 GetMethodID</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>jmethodID GetMethodID(JNIEnv *env, jclass clazz, const char *name, const char *signature)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>获取clazz类对象的指定方法ID。注意，方法名(name)与签名应当保持一致。若获取类构造方法的ID，方法名应为&lt;init&gt;</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>env: JNI接口指针</td></tr>
+<tr><td></td><td>clazz:Java类</td></tr>
+<tr><td></td><td>name：方法名</td></tr>
+<tr><td></td><td>signature：方法签名</td></tr>
+</tbody>
+<tbody>
+<tr><td>返回值</td><td>若方法ID错误，则返回NULL</td></tr>
+</tbody>
+</table>
+
+
+<p>
+以类的jclass与构造方法ID为参数，调用函数NewObject()函数生成JniTest类的对象。JniTest类的构造方法JniTest(int num)带有一个int类型的参数，在调用NewObject()时，同时传入100这一int数据。在生成类对象后，将对象的引用保存在jobject变量中。
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>JNI函数 NewObject</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>jobject NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, &hellip;)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>生成指定类的对象。methodID指类的构造方法的ID</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>env:JNI接口指针</td></tr>
+<tr><td></td><td>clazz: Java类</td></tr>
+<tr><td></td><td>methodID:类的构造方法的ID</td></tr>
+<tr><td></td><td>&hellip;:传递给类构造方法的参数</td></tr>
+</tbody>
+<tbody>
+<tr><td>返回值</td><td>返回类对象的引用。若发生错误，返回NULl</td></tr>
+</tbody>
+</table>
+
+
+<p>
+Tip: 局部引用与全局引用
+</p>
+<p>
+在实现JNI本地函数时，由GetObjectClass()、FindClass()等JNI函数返回的jclass\jobject等引用都是局部引用(Local Reference)
+</p>
+<p>
+局部引用是JNI默认的，它仅在JNI本地函数内部有效，即当JNI本地函数返回后，其内部的引用就会失效。
+</p>
+<p>
+在JNI编程中，实现JNI本地函数时，必须准确地理解局部引用的含义。
+下面再举一个例子进一步详细的说明一下。
+</p>
+
+
+
+<pre class="src src-java">
+<span style="color: #add8e6; font-weight: bold;">class</span> <span style="color: #9acd32; font-weight: bold;">RefTest</span>
+{
+    <span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">intField</span>;
+
+    <span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">setField</span>(<span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">num</span>) {
+        <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">Field</span> = num;
+    }
+}
+
+<span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #add8e6; font-weight: bold;">class</span> <span style="color: #9acd32; font-weight: bold;">RefTestMain</span>
+{
+    <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#21152;&#36733;&#26412;&#22320;&#24211;
+</span>    <span style="color: #add8e6; font-weight: bold;">static</span> { System.loadLibrary(<span style="color: #8fbc8f; font-style: italic;">"reftest"</span>e); }
+
+    <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#22768;&#26126;&#26412;&#22320;&#26041;&#27861;
+</span>    <span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #add8e6; font-weight: bold;">native</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">getMember</span>();
+
+    <span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">main</span>(<span style="color: #9acd32; font-weight: bold;">String</span>[] <span style="color: #add8e6; font-weight: bold; font-style: italic;">args</span>) {
+        RefTest.setField(100);
+        System.out.println(<span style="color: #8fbc8f; font-style: italic;">"intField = "</span> + getMember());
+        RefTest.setField(200);
+        System.out.println(<span style="color: #8fbc8f; font-style: italic;">"intField = "</span> + getMember());
+    }
+}
+</pre>
+
+
+
+
+<p>
+其中，本地方法getMember()的具体实现在reftest.cpp中。为了说明局部引用问题，声明了一个静态jclass变量targetClass，准备保存类的引用。
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">jclass</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">targetClass</span> = 0;
+JNIEXPORT jint <span style="color: #9acd32; font-weight: bold;">JNICALL</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">Java_RefTestMain_getMember</span>(<span style="color: #9acd32; font-weight: bold;">JNIEnv</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">env</span>, <span style="color: #9acd32; font-weight: bold;">jclass</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">clazz</span>)
+{
+    <span style="color: #9acd32; font-weight: bold;">jfieldID</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">fid</span>;
+    <span style="color: #9acd32; font-weight: bold;">jint</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">intField</span>;
+    <span style="color: #9acd32; font-weight: bold;">jclass</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">targetClass</span>;
+
+    <span style="color: #add8e6; font-weight: bold;">if</span>(targetClass == 0) {
+        targetClass = env-&gt;FindClass(RefTest<span style="color: #ffa07a; font-weight: bold;">"</span><span style="color: #8fbc8f; font-style: italic;">);
+    }
+    fid = env-&gt;GetStaticFieldID(targetClass, "</span>intField<span style="color: #8fbc8f; font-style: italic;">", "</span>I<span style="color: #ffa07a; font-weight: bold;">"</span><span style="color: #8fbc8f; font-style: italic;">);
+    intField = env-&gt;GetStaticIntFIeld(targetClass, fid);
+
+    return intField;
+}
+</span></pre>
+
+
+
+
+<p>
+运行程序会报错，原因在于JNI函数中的if (targetClass == 0)的判断，在java中的两次调用，第一次调用时targetClass还为0，第二次就不为0了。第二次没有调用FindClass造成出现错误。
+</p>
+<p>
+为了解决这一问题，JNI提供了一个名为NewGlobalRef()的JNI函数，用来为指定的类或对象生成全局引用(Global Reference)，以便在JNI本地函数中在全局范围内使用该引用。
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>JNI函数 NewGlobalRef</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>jobject NewGlobalRef(JNIEnv *env, jobject obj)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>为obj指定的类或对象，生成全局引用</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>env: JNI接口指针</td></tr>
+<tr><td></td><td>obj: 待生成全局引用的引用值</td></tr>
+</tbody>
+<tbody>
+<tr><td>返回值</td><td>返回生成的全局引用，所发生错误，返回NULL</td></tr>
+</tbody>
+</table>
+
+
+<p>
+当全局引用使用完后，应当调用名称为DeleteGlobalRef()的JNI函数，显性的将全局引用销毁。
+</p>
+
+
+
+<pre class="src src-c">
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">"RefTestMain.h"</span>
+
+<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">jclass</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">globalTargetClass</span> = 0;
+
+JNIEXPORT jint <span style="color: #9acd32; font-weight: bold;">JNICALL</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">Java_RefTestMain_getMember</span> (<span style="color: #9acd32; font-weight: bold;">JNIEnv</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">env</span>, <span style="color: #9acd32; font-weight: bold;">jclass</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">jclazz</span>)
+{
+    <span style="color: #9acd32; font-weight: bold;">jfieldID</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">fid</span>;
+    <span style="color: #9acd32; font-weight: bold;">jint</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">intField</span>;
+    <span style="color: #9acd32; font-weight: bold;">jclass</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">targetClass</span>;
+    
+    <span style="color: #add8e6; font-weight: bold;">if</span>(globalTargetClass == 0) {
+        targetClass = env-&gt;FindClass(<span style="color: #8fbc8f; font-style: italic;">"RefTest"</span>);
+        globalTargetClass = (<span style="color: #9acd32; font-weight: bold;">jclass</span>)env-&gt;NewGlobalRef(targetClass);
+    }
+
+    fid = env-&gt;GetStaticFieldID(globalTargetClass, <span style="color: #8fbc8f; font-style: italic;">"initField"</span>, <span style="color: #8fbc8f; font-style: italic;">"I"</span>);
+    intField = env-&gt;GetStaticIntField(globalTargetClass, fid);
+
+    <span style="color: #add8e6; font-weight: bold;">return</span> intField;
+}
+</pre>
+
+
+
+
+<p>
+上面代码调用了NewGlobalRef()函数，将targetClass中保存的RefTest类的局部引用(由FindClass()函数返回)转换成全局引用。并且将生成的全局引用保存在globalTargetClass静态变量中。
+</p>
+<p>
+局部引用在函数执行完程后即无效。而全局引用除非调用DeleteGlobalRef()明确将其销毁，不然这个全局引用总是有效的，可以在运行库的其他函数中使用该引用。
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-2.3.4" class="outline-5">
+<h5 id="sec-2.3.4">2.3.4 调用Java方法 </h5>
+<div id="text-2.3.4">
+
+
+<p>
+下面描述了如何使用JNI函数调用Java方法，并将返回值保存至JNI本地函数的变量中的过程
+
+</p>
+<hr/>
+<p>
+// 1. 获取含待调用方法的Java类的jclass
+targetClass = env-&gt;GetObjectClass(newObject);
+</p>
+<p>
+// 2. 获取待调用方法的ID
+mid = env-&gt;GetMethodID(targetClass, "callByNative", "(I)I");
+</p>
+<p>
+// 3. 调用Java方法 保存返回值
+result = env-&gt;CallIntMethod(newObject, mid, 200);
+
+</p>
+<hr/>
+
+<p>
+通过JNI调用Java方法的顺序如下
+</p><ol>
+<li>
+获取含待调用方法的Java类的jclass。若待调用方法属于某个Java类对象，则该方法用来获取Java类对象的jobject。
+
+</li>
+<li>
+调用GetMethodID()函数，获取待调用方法的ID(jMethodID)。使用jclass与GetMethodID()函数
+
+</li>
+<li>
+根据返回值类型，调用相应的JNI函数，实现对Java方法的调用。若待调用的Java方法是静态方法，则调用函数的形式应为CallStatic&lt;type&gt;Method();若待调用的方法属于某个类对象，则调用函数的形式应为Call&lt;type&gt;Method()。
+
+</li>
+</ol>
+
+<p>程序首先获取含callByNative()方法的JniTest类的jclass。在获取JniTest类的jclass时，可以直接调用FindClass()函数，将类引用保存在targetClass中。但是为了向各位介绍GetObjectClass()这个JNI函数，因而在此调用了GetObjectClass()函数。
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>JNI函数 CallStatic&lt;type&gt;Method()</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>&lt;jnitype&gt;CallStatic&lt;type&gt;Method(JNIEnv *env, jcalss clazz,jmethodID methodID, &hellip;)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>调用methodID指定的类的静态方法</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>env: JNI接口指针</td></tr>
+<tr><td></td><td>clazz: 含待调方法的类</td></tr>
+<tr><td></td><td>methodID：待调方法的ID 由GetStaticMethodID()函数获取</td></tr>
+<tr><td></td><td>&hellip;：传递给待调方法的参数</td></tr>
+</tbody>
+<tbody>
+<tr><td>返回值</td><td>被调方法的返回值</td></tr>
+</tbody>
+<tbody>
+<tr><td>参考</td><td>&lt;type&gt;除了前面说&lt;Get&lt;type&gt;FieldID()时列出的九种外又添加了void类型，返回值&lt;jnitype&gt;也增加了void类型。 待调方法的返回值不同，&lt;type&gt;也不同。若待调方法的返回值类型为int, 则调用函数为CallStaticIntMethod()</td></tr>
+</tbody>
+</table>
+
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>JNI函数 Call&lt;type&gt;Method()</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>&lt;jnitype&gt;Call&lt;type&gt;Method(JNIEnv　*env, jobject obj, jmethodID methodID, &hellip;)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>调用methodID指定的java对象的方法</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>env: JNI接口指针</td></tr>
+<tr><td></td><td>obj: 含待调方法的Java对象的引用</td></tr>
+<tr><td></td><td>methodID: 待调用方法的ID，由GetMethodID()函数来获取</td></tr>
+<tr><td></td><td>&hellip;: 传递给待调用方法的参数</td></tr>
+</tbody>
+<tbody>
+<tr><td>返回值</td><td>被调用方法的返回值</td></tr>
+</tbody>
+</table>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2.3.5" class="outline-5">
+<h5 id="sec-2.3.5">2.3.5 通过JNI设置成员变量的值 </h5>
+<div id="text-2.3.5">
+
+
+
+<hr/>
+<p>
+// 1. 获取含IntField成员变量的JniTest类的jclass值
+// 类引用已经被保存到targetClass中
+</p>
+<p>
+// 2. 获取JniTest对象的IntField变量值
+fid = env-&gt;GetFieldID(targetClass, "intField", "I");
+</p>
+<p>
+// 3. 将result值设置为IntField值
+env-&gt;SetIntField(newObject, fid, resutl);
+
+</p>
+<hr/>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>JNI函数 SetStatic&lt;type&gt;Field</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>void SetStatic&lt;type&gt;Field(JNIEnv *env, jclass clazz, jfieldID fieldID, &lt;type&gt;value)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>设置fieldID指定的Java类静态成员变量的值</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>env: JNI接口指针</td></tr>
+<tr><td></td><td>clazz: 含待设置成员变量的类的引用</td></tr>
+<tr><td></td><td>fieldID: 待设成员变量的ID，由GetStaticFieldID()函数获取</td></tr>
+<tr><td></td><td>value: 指定设置值</td></tr>
+</tbody>
+</table>
+
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>JNI函数 Set&lt;type&gt;Field</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>void Set&lt;type&gt;Field (JNIEnv *env, jobject obj, jfieldID fieldID, &lt;type&gt; value)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>设置fieldID指定的Java对象的成员变量</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>env: JNI接口指针</td></tr>
+<tr><td></td><td>obj: 包含待设成员变量的Java对象的引用</td></tr>
+<tr><td></td><td>fieldID: 待设成员变量的ID，由GetFieldID()函数获取</td></tr>
+<tr><td></td><td>value:指定设置值</td></tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-3" class="outline-2">
+<h2 id="sec-3">3 在C程序中运行Java类 </h2>
+<div id="text-3">
+
+
+<p>
+本节中学习在由C/C++编写的主程序中如何运行Java类，这也是使用JNI的重要方式。
+</p>
+<p>
+在C/C++程序中运行Java类也必须使用Java虚拟机。为此JNI提供了一套Invocation API，它允许本地代码在自身内存区域内加载Java虚拟机。
+</p>
+<p>
+下面列出的可能使你决定使用Invocation API在C/C++代码中调用Java代码的集中典型情况：
+</p>
+<ul>
+<li>
+需要在C/C++编写的本地应用程序中访问用Java语言编写的代码或代码库
+
+</li>
+<li>
+希望在C/C++编写的本地应用程序中使用标准的Java库
+
+</li>
+<li>
+当需要把自己已有的C/C++程序与Java程序组织链接在一起时，使用Invocation API可以将它们组织成一个完整的程序
+
+</li>
+</ul>
+
+</div>
+
+<div id="outline-container-3.1" class="outline-3">
+<h3 id="sec-3.1">3.1 Invocaton API 应用示例 </h3>
+<div id="text-3.1">
+
+<p>实例程序由InvokeJava.cpp与InvocationTest.java两个文件构成
+</p>
+<p>
+示例程序将按如下顺序执行:
+</p>
+<p>
+(1) 主程序InvokeJava.cpp使用Invocation API加载Java虚拟机。
+</p>
+<p>
+(2) 通过JNI函数加载InvocationTest类至内存中
+</p>
+<p>
+(3) 执行被加载的InvocatonTest类main()方法
+</p>
+
+</div>
+
+<div id="outline-container-3.1.1" class="outline-4">
+<h4 id="sec-3.1.1">3.1.1 分析Java代码 InvocationApiTest.java </h4>
+<div id="text-3.1.1">
+
+
+
+
+
+<pre class="src src-java">
+<span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #add8e6; font-weight: bold;">class</span> <span style="color: #9acd32; font-weight: bold;">InvocationAPiTest</span> 
+{
+    <span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">main</span>(<span style="color: #9acd32; font-weight: bold;">String</span>[] <span style="color: #add8e6; font-weight: bold; font-style: italic;">args</span>)
+    {
+        System.out.println(args[0]);
+    }
+}
+</pre>
+
+
+
+<p>
+仅含有一个main()方法，该main()方法是一个静态方法，带有一个字符串对象数组，在方法体中仅有一条输出语句，用来降低一个数组元素args[ 0]中的字符串输出到控制台上。
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-3.1.2" class="outline-4">
+<h4 id="sec-3.1.2">3.1.2 分析C代码 invocationApi.c </h4>
+<div id="text-3.1.2">
+
+
+
+
+<pre class="src src-c">
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;jni.h&gt;</span>
+
+<span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">main</span>() 
+{
+    <span style="color: #9acd32; font-weight: bold;">JNIEnv</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">env</span>;
+    <span style="color: #9acd32; font-weight: bold;">JavaVM</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">vm</span>;
+    <span style="color: #9acd32; font-weight: bold;">JavaVMInitArgs</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">vm_args</span>;
+    <span style="color: #9acd32; font-weight: bold;">JavaVMOptions</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">options</span>[1];
+    <span style="color: #9acd32; font-weight: bold;">jint</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">res</span>;
+    <span style="color: #9acd32; font-weight: bold;">jclass</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">cls</span>;
+    <span style="color: #9acd32; font-weight: bold;">jmethodID</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">mid</span>;
+    <span style="color: #9acd32; font-weight: bold;">jstring</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">jstr</span>;
+    <span style="color: #9acd32; font-weight: bold;">jclass</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">stringClass</span>;
+    <span style="color: #9acd32; font-weight: bold;">jobjectArray</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">args</span>;
+
+    <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">1. &#29983;&#25104;Java&#34394;&#25311;&#26426;&#36873;&#39033;
+</span>    options[0].optionString = <span style="color: #8fbc8f; font-style: italic;">"-Djava.class.path=."</span>
+    vm_args.version = 0x00010002;
+    vm_args.options = options;
+    vm_args.nOptions = 1;
+    vm_args.ignoreUnrecognized = JNI_TRUE;
+
+    <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">2. &#29983;&#25104;Java&#34394;&#25311;&#26426;
+</span>    res = JNI_CreateJavaVM(&amp;vm, (<span style="color: #9acd32; font-weight: bold;">void</span>**)&amp;env, &amp;vm_args);
+
+    <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">3. &#26597;&#25214;&#24182;&#21152;&#36733;&#31867;
+</span>    cls = (*env)-&gt;FindClass(env, <span style="color: #8fbc8f; font-style: italic;">"InvocationApiTest"</span>);
+
+    <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">4. &#33719;&#21462;main()&#26041;&#27861;&#30340;ID
+</span>    mid = (*env)-&gt;GetStaticMethodID(env, cls, <span style="color: #8fbc8f; font-style: italic;">"main"</span>, ([Ljava/lang/String;)V);
+
+    <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">5. &#29983;&#25104;&#23383;&#31526;&#20018;&#23545;&#35937;&#65292;&#29992;&#20316;main()&#26041;&#27861;&#30340;&#21442;&#25968;
+</span>    jstr = (*env)-&gt;NewStringUTF(env, <span style="color: #8fbc8f; font-style: italic;">"Hello Invacation API!!"</span>);    
+    stringClass = (*env)-&gt;NewObjectArray(env, 1, stringClass, jstr);
+    args = (*env)-&gt;NewObjectArray(env, 1, stringClass, jstr);
+
+    <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">6. &#35843;&#29992;main()&#26041;&#27861;
+</span>    &#65288;*env)-&gt;CallStaticVoidMethod(env, cls, mid, args);
+    
+    <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">7. &#38144;&#27585;Java&#34394;&#25311;&#26426;
+</span>    (*vm)-&gt;DestroyJavaVM(vm);
+}
+</pre>
+
+
+
+
+<p>
+下面开始分析代码的主要部分
+</p>
+
+
+
+
+<pre class="src src-java">
+    <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">1. &#29983;&#25104;Java&#34394;&#25311;&#26426;&#36873;&#39033;
+</span>    options[0].optionString = <span style="color: #8fbc8f; font-style: italic;">"-Djava.class.path=."</span>
+    vm_args.version = 0x00010002;
+    vm_args.options = options;
+    vm_args.nOptions = 1;
+    vm_args.ignoreUnrecognized = JNI_TRUE;
+</pre>
+
+
+
+<p>
+生成一些参数或选项值，这些值在加载Java虚拟机时被引用，用来设置Java虚拟机的运行环境或控制Java虚拟机的运行，如设置CLASSPATH或输出调试信息等。
+</p>
+<p>
+在生成Java虚拟机选项时，使用JavaVMInitArgs与JavaVMOption结构体，它们定义在jni.h头文件中
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #add8e6; font-weight: bold;">typedef</span> <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">JavaVMInitArgs</span> {
+    <span style="color: #9acd32; font-weight: bold;">jint</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">version</span>;
+    <span style="color: #9acd32; font-weight: bold;">jint</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">nOptions</span>;
+    <span style="color: #9acd32; font-weight: bold;">JavaVMOption</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">options</span>;
+    <span style="color: #9acd32; font-weight: bold;">jboolean</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">ignoreUnrecognized</span>;
+} <span style="color: #add8e6; font-weight: bold; font-style: italic;">JavaVMInitArgs</span>;
+
+<span style="color: #add8e6; font-weight: bold;">typedef</span> <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">JavaVMOption</span> {
+    <span style="color: #9acd32; font-weight: bold;">char</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">optionString</span>;
+    <span style="color: #9acd32; font-weight: bold;">void</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">extraInfo</span>;
+} <span style="color: #add8e6; font-weight: bold; font-style: italic;">JavaVMOption</span>;
+</pre>
+
+
+
+<p>
+观察JavaVMInitArgs结构体定义代码，可以发现JavaVMInitArgs结构体内包含JavaVMOption结构体的指针。JavaVMOption结构体包含Java虚拟机的各个参数，JavaVMInitArgs结构体用来将这些参数选项传递给Java虚拟机。
+</p>
+<p>
+接下来，看一下结构体中各个成员的含义。
+</p>
+<p>
+JavaVMInitArgs结构体的versino成员用来指定传递诶虚拟机的选项的变量的形式，设定在jni.h头文件中定义的JNI<sub>Version</sub><sub>1</sub><sub>2的值。nOptions与options用来指定JavaVMInitArgs所指的JavaVMOption结构体数组值。nOptions指定JavaVMOption结构体数组元素的个数，options用来指向JavaVMOption结构体的地址。示例中只设置了一个Java虚拟机选项，即JavaVMOption结构体数组仅有一个元素，声明如下</sub>
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #9acd32; font-weight: bold;">JavaVMOption</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">options</span>[1];
+</pre>
+
+
+
+<p>
+为了指定以上JavaVMOption结构体数组，需要指定JavaVMInitArgs的options与nOptions
+</p>
+
+
+<pre class="src src-c">
+vm_args.options = options; <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">JavaVMOption &#32467;&#26500;&#20307;&#30340;&#22320;&#22336;
+</span>vm_args.nOptions = 1; <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">JavaVMOption &#32467;&#26500;&#20307;&#25968;&#32452;&#20803;&#32032;&#20010;&#25968;
+</span></pre>
+
+
+
+
+<p>
+ignoreUnrecognized是JavaVMInitArgs结构体jboolean类型的成员，当Java虚拟机独到设置错误的选项值时，该成员用来决定Java虚拟机是忽略错误后继续执行，还是返回错误后终止执行。若ignoreUnrecognized被设置为JNI<sub>TRUE，Java虚拟机遇到错误选项时，忽略错误后继续执行；若被设置为JNI</sub><sub>FALSE，当遇到错误选项，Java虚拟机将错误返回后终止执行。</sub>
+</p>
+<p>
+接下来分析JavaVMOption结构体，它用来指定Java虚拟机的选项值。若想创建选项值，只要向结构体的optionString成员指定一个字符串，用作Java虚拟机选项的形式。比如示例中的"-Djava.class.path=."，用来设置标准选项，即将Java虚拟机要加载的类的默认目录设置为当前目录(.)，其形式为-Dproperty=value。
+</p>
+
+
+
+<pre class="src src-c">
+res = JNI_CreateJavaVM(&amp;vm, (<span style="color: #9acd32; font-weight: bold;">void</span>**)&amp;env, &amp;vm_args);
+</pre>
+
+
+
+<p>
+本行代码是整个程序的核心部分，即C应用程序调用JNI<sub>CreateJavaVM</sub>()函数，生成并装载Java虚拟机。JNI<sub>CreateJavaVM</sub>()函数的第一个参数类型为JavaVM,它表示Java虚拟机接口，用来生成或销毁Java虚拟机。DestroyJavaVM()是接口函数之一，该函数用来销毁Java虚拟机。
+</p>
+<p>
+在JNI<sub>CreateJavaVM</sub>()函数的第二个参数env中，保存着JNI接口的指针的地址。通过env所指的JNI接口指针，可以使用各种JNI函数，即在C/C++中，通过env，可以生成Java对象，调用相应方法等。
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>JNI Invocation API-JNI<sub>CreateJavaVM</sub></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>jint JNI<sub>CreateJavaVM</sub>(javaVM **vm, JNIEnv **env, void *vm<sub>args</sub>)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>装载并初始化Java虚拟机</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>vm: JavaVM指针的地址</td></tr>
+<tr><td></td><td>env: JNI接口指针的地址</td></tr>
+<tr><td></td><td>vm<sub>args</sub>: 传递给Java虚拟机的参数</td></tr>
+</tbody>
+<tbody>
+<tr><td>返回值</td><td>成功，返回0；失败，返回负值</td></tr>
+</tbody>
+</table>
+
+
+<p>
+为了加载InvocationTest类和执行方法(向main方法传递字符串参数"Hello")，首先调用FindClass()函数，装载InvocationApiTest类。而后调用GetStaticMethodID()函数，获取main()方法的ID，准备调用main()方法。  
+</p>
+<p>
+在使用CallStaticVoidMethod()函数调用main()方法之前，首先构造出传递给main()方法的参数。Java的main()方法的参数是String[]数组
+</p>
+
+
+<pre class="src src-java">
+<span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">main</span>(<span style="color: #9acd32; font-weight: bold;">String</span>[] <span style="color: #add8e6; font-weight: bold; font-style: italic;">args</span>)
+</pre>
+
+
+
+
+<p>
+示例中将"Hello Invocation API!!"字符串传递给main()方法。首先调用NewStringUTF()函数，将UTF-8形式的字符串，转换成Java字符串对象String。然后调用NewObjectArray()函数，创建String对象数组，使用创建的String对象将其初始化。先创建一个含有一个元素的String[]数组，而后将"Hello Invocation API!!"字符串赋值给数组的第一个元素。
+</p>
+
+
+
+<pre class="src src-c">
+    jstr = (*env)-&gt;NewStringUTF(env, <span style="color: #8fbc8f; font-style: italic;">"Hello Invacation API!!"</span>);    
+    stringClass = (*env)-&gt;NewObjectArray(env, 1, stringClass, jstr);
+    args = (*env)-&gt;NewObjectArray(env, 1, stringClass, jstr);
+</pre>
+
+
+
+<p>
+调用JNI本地函数处理String对象的方法有些复杂。如果你对此仍迷惑不解，我们不妨将这部分代码转换成与其等价的Java代码。
+</p>
+<p>
+如下所示，首先创建包含一个元素的字符串数组，而后将"Hello Invocation API!!"字符串赋值给数组的首个元素
+</p>
+
+
+<pre class="src src-java">
+<span style="color: #9acd32; font-weight: bold;">String</span>[] <span style="color: #add8e6; font-weight: bold; font-style: italic;">args</span> = <span style="color: #add8e6; font-weight: bold;">new</span> <span style="color: #9acd32; font-weight: bold;">String</span>[1];
+args[0] = <span style="color: #8fbc8f; font-style: italic;">"Hello Invocation API!"</span>
+</pre>
+
+
+
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>JNI函数 NeStringUTF</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>jstring NewStringUTF(JNIEnv *env, const char *bytes)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>将UTF-8形式的C字符串转换成java.lang.String对象</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>env: JNI接口指针</td></tr>
+<tr><td></td><td>bytes: 待生成String对象的C字符串的地址</td></tr>
+</tbody>
+<tbody>
+<tr><td>返回值</td><td>成功，返回String对象的jstring类型的引用；失败，返回NULL</td></tr>
+</tbody>
+</table>
+
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>JNI函数 NewObjectArray</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>jarray NewObjectArray(JNIEnv *env, jsize length, jclass elementClass, jobject initalElement)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>生成由elementClass对象组成的数组。数组元素个数由length指定，initalElement参数用来初始化对象数组</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>env: JNI接口指针</td></tr>
+<tr><td></td><td>length: 数组元素个数</td></tr>
+<tr><td></td><td>elementClass:数组元素对象的类型</td></tr>
+<tr><td></td><td>initialElement: 数组初始化值</td></tr>
+</tbody>
+<tbody>
+<tr><td>返回值</td><td>若成功，则返回数组引用；失败，则返回NULL</td></tr>
+</tbody>
+</table>
+
+
+
+
+
+<pre class="src src-c">
+(*env)-&gt;CallStaticVoidMethod(env, cls, mid, args);
+</pre>
+
+
+
+<p>
+本行代码通过CallStaticVoidMethod()函数调用InvocationApiTest类的main()方法。在上面创建的Stringp[]数组是CallStaticVoidMethod()函数的第四个参数，该参数会被传递给InvocationApiTest类的main()方法。当InvocationApiTest类的main()方法被调用执行时，它会向控制台输出args字符串数组的args[ 0]元素中的字符串。
+</p>
+</div>
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-4" class="outline-2">
+<h2 id="sec-4">4 直接注册JNI本地函数 </h2>
+<div id="text-4">
+
+
+<p>
+Java虚拟机在运行包含本地方法的Java应用程序时，要经过以下两个步骤。
+</p>
+<ol>
+<li>
+调用System.loadLibrary()方法，将包含本地方法具体实现的C/C++运行库加载到内存中。
+
+</li>
+<li>
+Java虚拟机检索加载进来的库函数符号，在其中查找与Java本地方法拥有相同签名的JNI本地函数符号。若找到一致的，则将本地方法映射到具体的JNI本地函数。
+
+</li>
+</ol>
+
+<p>在Android Framework这类复杂的系统下，拥有大量的包含本地方法的java类，Java虚拟机加载相应的运行库，再逐一检索，将各个本地方法与相应的函数映射起来，这显然会增加运行时间，降低运行的效率。
+</p>
+<p>
+为此，JNI机制提供了名称为RegisterNatives()的JNI函数，该函数允许C/C++开发者将JNI本地函数与Java类的本地方法直接映射在一起。当不调用RegisterNative()函数时，Java虚拟机会自动检索并将JNI本地函数与相应的Java本地方法链接在一起。但当开发者直接调用RegisterNatives()函数进行映射时，Java虚拟机就不必进行映射处理，这会极大提高运行速度，提升运行效率。
+</p>
+<p>
+由于程序员直接将JNI本地函数与Java本地方法链接在一起，在加载运行库时，Java虚拟机不必为了识别JNI本地函数而将JNI本地函数的名称与JNI支持的命名规则进行对比，即任何名称的函数都能直接链接到Java本地方法上。
+</p>
+
+</div>
+
+<div id="outline-container-4.1" class="outline-3">
+<h3 id="sec-4.1">4.1 加载本地库时，注册JNI本地函数 </h3>
+<div id="text-4.1">
+
+
+
+
+
+<pre class="src src-java">
+#include <span style="color: #8fbc8f; font-style: italic;">"jni.h"</span>
+#include &lt;stdio.h&gt;
+
+<span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">JNI&#26412;&#22320;&#20989;&#25968;&#21407;&#22411;
+</span><span style="color: #9acd32; font-weight: bold;">void</span> printHelloNative(JNIEnv *env, <span style="color: #9acd32; font-weight: bold;">jobject</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">obj</span>);
+<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">printStringNative</span>(JNIEnv *env, <span style="color: #9acd32; font-weight: bold;">jobject</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">obj</span>, <span style="color: #9acd32; font-weight: bold;">jstring</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">string</span>);
+
+JNIEXPORT jint <span style="color: #9acd32; font-weight: bold;">JNICALL</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">JNI_OnLoad</span>(JavaVM *vm, <span style="color: #9acd32; font-weight: bold;">void</span> *reserved)
+{
+    JNIEnv *env = NULL;
+    <span style="color: #9acd32; font-weight: bold;">JNINativeMethod</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">nm</span>[2];
+    <span style="color: #9acd32; font-weight: bold;">jclass</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">cls</span>;
+    <span style="color: #9acd32; font-weight: bold;">jint</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">result</span> = -1;
+
+    <span style="color: #add8e6; font-weight: bold;">if</span>(vm-&gt;GetEnv((<span style="color: #9acd32; font-weight: bold;">void</span>**)&amp;env, JNI_VERSION_1_4) != JNI_OK) {
+        printf(<span style="color: #8fbc8f; font-style: italic;">"Error"</span>);
+        <span style="color: #add8e6; font-weight: bold;">return</span> JNI_ERR;
+    }
+    
+    cls = env-&gt;FindClass(<span style="color: #8fbc8f; font-style: italic;">"HelloJNI"</span>);
+
+    nm[0].name = <span style="color: #8fbc8f; font-style: italic;">"printHello"</span>;
+    nm[0].signature = <span style="color: #8fbc8f; font-style: italic;">"()V"</span>;
+    nm[0].fnPtr = (<span style="color: #9acd32; font-weight: bold;">void</span>*)printHelloNative;
+
+    nm[1].name = <span style="color: #8fbc8f; font-style: italic;">"printString"</span>;
+    nm[1].signature = <span style="color: #8fbc8f; font-style: italic;">"(Ljava/lang/String;)V"</span>;
+    nm[1].fnPtr = (<span style="color: #9acd32; font-weight: bold;">void</span>*)printStringNative;
+
+    env-&gt;RegisterNatives(cls, nm, 2);
+
+    <span style="color: #add8e6; font-weight: bold;">return</span> JNI_VERSION_1_4;
+}
+
+<span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#23454;&#29616;JNI&#26412;&#22320;&#20989;&#25968;
+</span><span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">printHelloNative</span>(JNIEnv *env, <span style="color: #9acd32; font-weight: bold;">jobject</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">obj</span>)
+{
+    printf(<span style="color: #8fbc8f; font-style: italic;">"Hello World!\n"</span>);
+    <span style="color: #add8e6; font-weight: bold;">return</span>;
+}
+
+<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">printStringNative</span>(JNIEnv *env, <span style="color: #9acd32; font-weight: bold;">jobject</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">obj</span>, <span style="color: #9acd32; font-weight: bold;">jstring</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">string</span>)
+{
+    <span style="color: #add8e6; font-weight: bold;">const</span> <span style="color: #9acd32; font-weight: bold;">char</span> *str = env-&gt;GetStringUTFChars(string, 0);
+    printf(<span style="color: #ffa07a; font-weight: bold;">"</span><span style="color: #8fbc8f; font-style: italic;">%s!\n, str);
+
+    return;
+}
+</span></pre>
+
+
+
+
+
+<pre class="src src-java">
+<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">printHelloNative</span>(JNIEnv *env, <span style="color: #9acd32; font-weight: bold;">jobject</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">obj</span>);
+<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">printStringNative</span>(JNIEnv *env, <span style="color: #9acd32; font-weight: bold;">jobject</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">obj</span>, <span style="color: #9acd32; font-weight: bold;">jstring</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">string</span>);
+</pre>
+
+
+
+<p>
+此两行代码用来声明JNI本地函数原型。如前所述，在使用RegisterNatives()函数机型映射时，不需要将JNI本地函数原型与JNI命名规则进行比对，所以使用的函数名比较简单。但函数中的两个公共参数必须指定为"JNIEnv *env, jobject obj"。
+</p>
+
+
+
+<pre class="src src-java">
+    <span style="color: #add8e6; font-weight: bold;">if</span>(vm-&gt;GetEnv((<span style="color: #9acd32; font-weight: bold;">void</span>**)&amp;env, JNI_VERSION_1_4) != JNI_OK) {
+        printf(<span style="color: #8fbc8f; font-style: italic;">"Error"</span>);
+        <span style="color: #add8e6; font-weight: bold;">return</span> JNI_ERR;
+</pre>
+
+
+
+<p>
+在JNI<sub>OnLoad</sub>()函数中首先判断JNI的版本，即调用GetEnv()函数，判断Java虚拟机是否支持JNI1.4。若java虚拟机支持JNI1.4，JNI<sub>OnLoad</sub>()函数就会返回JNI<sub>VERSION</sub><sub>1</sub><sub>4；若不支持，JNI</sub><sub>OnLoad</sub>()函数就会返回JNI<sub>ERR，并终止装载库的行为。</sub>
+</p>
+<p>
+当GetEnv()函数调用完毕后，JNI接口指针被保存到env变量中，在调用FindClass()、RegisterNatives()等JNI函数时，可以使用该变量。
+</p><table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>JNI Invocation API - GetEnv</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>jint GetEnv(JavaVM *vm, void **env, jint version)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>判断Java虚拟机是否支持version指定的JNI版本，而后将JNI接口指针设置到*env中</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>vm: JavaVM接口指针的地址</td></tr>
+<tr><td></td><td>env: JNI接口指针地址</td></tr>
+<tr><td></td><td>version: JNI版本</td></tr>
+</tbody>
+<tbody>
+<tr><td>返回值</td><td>若执行成功，返回0；失败，返回负值</td></tr>
+</tbody>
+</table>
+
+
+
+
+
+<pre class="src src-java">
+    cls = env-&gt;FindClass(<span style="color: #8fbc8f; font-style: italic;">"HelloJNI"</span>);
+</pre>
+
+
+
+<p>
+为了把声明的JNI本地函数与JNI本地函数映射在一起，本行先调用FindClass()函数加载HelloJNI类，并将类引用保存到jclass变量cls中。
+</p>
+
+
+
+<pre class="src src-java">
+    nm[0].name = <span style="color: #8fbc8f; font-style: italic;">"printHello"</span>;
+    nm[0].signature = <span style="color: #8fbc8f; font-style: italic;">"()V"</span>;
+    nm[0].fnPtr = (<span style="color: #9acd32; font-weight: bold;">void</span>*)printHelloNative;
+
+    nm[1].name = <span style="color: #8fbc8f; font-style: italic;">"printString"</span>;
+    nm[1].signature = <span style="color: #8fbc8f; font-style: italic;">"(Ljava/lang/String;)V"</span>;
+    nm[1].fnPtr = (<span style="color: #9acd32; font-weight: bold;">void</span>*)printStringNative
+</pre>
+
+
+
+<p>
+该部分代码用来将Java类的本地方法与JNI本地函数映射在一起。首先使用JNINativeMethod结构体数组，将待映射的本地方法与JNI本地函数的相关信息保存在数组中，而后调用RegisterNatives()函数进行映射。JNINativeMethod结构体定义如下
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #add8e6; font-weight: bold;">typedef</span> <span style="color: #add8e6; font-weight: bold;">struct</span> {
+    <span style="color: #9acd32; font-weight: bold;">char</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">name</span>;    <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#26412;&#22320;&#26041;&#27861;&#21517;&#31216;
+</span>    <span style="color: #9acd32; font-weight: bold;">char</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">signature</span>; <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#26412;&#22320;&#26041;&#27861;&#31614;&#21517;
+</span>    <span style="color: #9acd32; font-weight: bold;">void</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">fnPtr</span>; <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#19982;&#26412;&#22320;&#26041;&#27861;&#30456;&#23545;&#24212;&#30340;JNI&#26412;&#22320;&#20989;&#25968;&#25351;&#38024;
+</span>} <span style="color: #add8e6; font-weight: bold; font-style: italic;">JNINativeMethod</span>
+</pre>
+
+
+
+<p>
+如代码所示，nm是JNINativeMethod结构体数组，它保存着printHello()、printString()与printHelloNative()、printStringNative()函数的链接信息。
+</p>
+<p>
+保存好映射信息后，将它们传递给RegisterNatives()函数，最后由RegisterNatives()函数完成映射。
+</p><table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>JNI函数 RegisterNatives</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>形式</td><td>jarray RegisterNatives(JNIEnv *env, jclass clazz, const JNINativeMethod *methdos, jint nMethods)</td></tr>
+</tbody>
+<tbody>
+<tr><td>说明</td><td>将clazz指定类中的本地方法与JNI本地函数链接在一起，链接信息保存在JNINativeMethod结构体数组中</td></tr>
+</tbody>
+<tbody>
+<tr><td>参数</td><td>env: JNI接口指针</td></tr>
+<tr><td></td><td>clazz: Java类</td></tr>
+<tr><td></td><td>methods: 包含本地方法与JNI本地函数的链接信息</td></tr>
+<tr><td></td><td>nMethods: methods数组元素的个数</td></tr>
+</tbody>
+<tbody>
+<tr><td>返回值</td><td>若执行成功，返回数组引用；否则返回NULL</td></tr>
+</tbody>
+</table>
+
+
+<p>
+总结一下，本节中通过JNI<sub>OnLoad</sub>()函数将Java本地方法与JNI本地函数映射起来。
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-4.2" class="outline-3">
+<h3 id="sec-4.2">4.2 Android中的应用举例 </h3>
+<div id="text-4.2">
+
+
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-5" class="outline-2">
+<h2 id="sec-5">5 使用Android NDK开发 </h2>
+<div id="text-5">
+
+
+<p>
+Andoird NDK ( Native Development Kit )
+</p>
+<ul>
+<li>
+包含将C/C++源代码编译成本地库的工具(编译器、连接器等)
+
+</li>
+<li>
+提供将编译好的本地库插入Android包文件(.apk)中的功能
+
+</li>
+<li>
+在生成本地库时，Android平台可支持的系统头文件与库
+
+</li>
+<li>
+NDK开发相关的文档、示例、规范
+
+</li>
+</ul>
+
+</div>
+
+<div id="outline-container-5.1" class="outline-3">
+<h3 id="sec-5.1">5.1 安装Androdi NDK </h3>
+<div id="text-5.1">
+
+
+<p>
+网站: <a href="http://developer.android.com/sdk/ndk/index.html">http://developer.android.com/sdk/ndk/index.html</a>
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-5.2" class="outline-3">
+<h3 id="sec-5.2">5.2 使用Android NDK 开发步骤 </h3>
+<div id="text-5.2">
+
+
+<p>
+设置好NDK环境变量后，在&lt;NDK<sub>HOME&gt</sub>;/apps目录下，会看到一些NDK使用示例程序
+</p>
+<ul>
+<li>
+hello-jni: 调用本地库，接收"Hello from JNI"字符串，并通过TextView将其输出
+
+</li>
+<li>
+two-libs: 调用本地库，返回两数之和，并通过TextView输出
+
+</li>
+<li>
+san-angeles: 调用本地OpenGL ES API， 渲染3D图片
+
+</li>
+<li>
+hello-gl2: 调用OpenGL ES 2.0， 渲染三角形
+
+</li>
+<li>
+bitmap-plasma: 一个使用本地代码访问Android Bitmap对象的像素缓存区的示例程序
+
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-5.3" class="outline-3">
+<h3 id="sec-5.3">5.3 小结 </h3>
+<div id="text-5.3">
+
+</div>
+</div>
+</div>
+<div id="postamble"><p class="author"> Author: Wizard.Yang
+<a href="mailto:xblandy@gmail.com">&lt;xblandy@gmail.com&gt;</a>
+</p>
+<p class="date"> Date: 2012-07-31 17:10:05 CST</p>
 </div></body>
 </html>
