@@ -1,0 +1,99 @@
+#+AUTHOR: Wizard.Yang
+#+EMAIL:  xblandy@gmail.com
+#+TITLE:  Introduction
+#+TEXT:   
+#+OPTIONS:creator:nil
+
+* Chapter 1
+
+本章介绍Java本地接口JNI。
+
+JNI是一种本地编程接口，它允许在Java虚拟机里运行的java代码能够与应用程序和库进行交互。
+
+库可以由其他语言编写，比如C、C++、汇编等。
+
+JNI最重要的优点是它在底层的Java虚拟机的实现上没有限制。因此，Java虚拟机可以为JNI增加支持而不需要影响到虚拟机的其他部分。
+
+程序员可以写一个版本的本地应用或者库，然后它能够在所有的支持JNI的Java虚拟机上工作。
+
+本章包括以下内容：
+
++ Java Native Interface Overview
+
++ Background
+
++ Objectives
+
++ Java Native Interface Approach
+
++ Programming to the JNI
+
++ Changes
+
+** Java Native Interface Overivew
+
+有些时候你可以完全用Java来写应用。而有些情况下不能只用Java来完成需求。程序员使用JNI来写Java本地方法来处理这些情况。
+
+下面的例子说明了你需要使用Java本地方法的情况:
+
++ 标准的Java类库不支持应用程序需要的平台依赖特性
+
++ 你已经有了一个使用其他语言写的库，并且想要在java代码里面通过JNI来访问
+
++ 你想要实现一小段时间需求高的代码，使用低层语言，比如汇编
+
+通过使用JNI编程，你可以使用native方法来：
+
++ 创建，检查以及升级java对象，包括数组和字符串
+
++ 调用java方法
+
++ 捕获和抛出异常
+
++ 装载类和获取类信息
+
++ 使用运行时类型检查
+
+你也可以使用Invocation API来使能一个任意的本地应用来嵌入JavaVM。这允许编程者简单的编译他们已有的应用程序基于java的不需要链接VM的源码。
+
+** Historical Background
+
+来自不同供应商的VM提供了不同的本地方法接口。这些不同的接口强制程序员编写，维护和发布多种版本的本地方法代码库，在已有的平台上。
+
+我们简单的测试了一些本地方法接口，比如：
+
++ JDK1.0本地方法接口
+
++ Netscape的Java运行时接口
+
++ Microsoft的Raw 本地接口和Java/COM 接口
+
+*** JDK 1.0 Native Method Interface
+
+*** Java Runtime Interface
+
+*** Raw Native Interface and Java/COM Interface
+
+** Objectives
+
+我们相信这是一个独一无二的，很好的标准接口，为所有人提供了下面的优点：
+
++ 每个VM厂商都可以支持一个巨大的本地代码
+
++ 工具编译者将不需要维护不同种类的本地代码接口
+
++ 应用程序员将能够写一个版本的本地代码，然后在不同的VM上运行
+
+最好的实现本地方法接口的方法是包括Java虚拟机所有有趣的部分。因此我们组织了一系列的讨论，设计独一无二的本地方法接口。标准本地方法接口必须满足下面的需求：
+
++ 二进制兼容
+
++ 高效率
+
++ 功能性 - 接口必须暴露出足够的JavaVM内部的接口来允许本地方法完成有用的工作
+
+** Java Native Interface Approach
+
+** Programming to the JNI
+
+** Changes

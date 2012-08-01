@@ -279,7 +279,7 @@ staticIntField = env->GetStaticIntField(clazz, fid);
 (2) 获取此类成员变量的jfieldID值。若成员变量为静态变量，则调用名称为GetStaticFieldID()的JNI函数；若待访问的成员变量是普通对象，则调用名称为GetFieldID()的JNI函数。
 (3) 使用12中获得的jclass与jfieldID值，获取或设置成员变量值。
 
-依据以上顺序，待读取树脂的staticIntField成员变量在JniFuncMain类被声明。JniFuncMain类的jclass值被传递给JNI本地函数java_JniFuncMain_createJniObject()的第二个参数中，若想获取指定类的jclass值，调用JNI函数FindClass()即可。
+依据以上顺序，待读取树脂的staticIntField成员变量在JniFuncMain类被声明。JniFuncMain类的jclass值被传递给JNI本地函数 =java_JniFuncMain_createJniObject()= 的第二个参数中，若想获取指定类的jclass值，调用JNI函数FindClass()即可。
 
 若想在本地代码中访问Java的成员变量，必须获取相应成员变量的ID值。例子中成员变量的ID保存在jfieldID类型的变量中。由于待读取数值的staticIntField成员变量时JniFUncMain类的静态变量，在获取staticIntField的ID时，影调用名称为GetStaticFieldID()的JNI函数。
 
@@ -303,11 +303,11 @@ staticIntField = env->GetStaticIntField(clazz, fid);
 |------------------------+---------------------------------------------------------------------------------------|
 | 参数                   | env-JNI接口指针 clazz-包含成员变量的类的jclass name-成员变量名 signatuer-成员变量签名 |
 
-以上两个函数都要去提供成员变量的签名。成员变量与成员方法都拥有签名，使用<JDK_HOME>/bin目录下的javap命令(java反编译器)，可以获取成员变量活成员方法签名。
+以上两个函数都要去提供成员变量的签名。成员变量与成员方法都拥有签名，使用 =<JDK_HOME>/bin= 目录下的javap命令(java反编译器)，可以获取成员变量活成员方法签名。
 
 Tip: 在JNI中获取成员变量活成员方法签名
 
-形式： javap [选项] '类名'
+形式： javap =[选项]=  '类名'
 
 选项： -s 输出java签名
       -p 输出所有类及成员
@@ -707,7 +707,7 @@ typedef struct JavaVMOption {
 
 接下来，看一下结构体中各个成员的含义。
 
-JavaVMInitArgs结构体的versino成员用来指定传递诶虚拟机的选项的变量的形式，设定在jni.h头文件中定义的JNI_Version_1_2的值。nOptions与options用来指定JavaVMInitArgs所指的JavaVMOption结构体数组值。nOptions指定JavaVMOption结构体数组元素的个数，options用来指向JavaVMOption结构体的地址。示例中只设置了一个Java虚拟机选项，即JavaVMOption结构体数组仅有一个元素，声明如下
+JavaVMInitArgs结构体的versino成员用来指定传递诶虚拟机的选项的变量的形式，设定在jni.h头文件中定义的 =JNI_Version_1_2= 的值。nOptions与options用来指定JavaVMInitArgs所指的JavaVMOption结构体数组值。nOptions指定JavaVMOption结构体数组元素的个数，options用来指向JavaVMOption结构体的地址。示例中只设置了一个Java虚拟机选项，即JavaVMOption结构体数组仅有一个元素，声明如下
 #+BEGIN_SRC c
 JavaVMOption options[1];
 #+END_SRC
@@ -717,26 +717,26 @@ vm_args.options = options; // JavaVMOption 结构体的地址
 vm_args.nOptions = 1; // JavaVMOption 结构体数组元素个数
 #+END_SRC
 
-ignoreUnrecognized是JavaVMInitArgs结构体jboolean类型的成员，当Java虚拟机独到设置错误的选项值时，该成员用来决定Java虚拟机是忽略错误后继续执行，还是返回错误后终止执行。若ignoreUnrecognized被设置为JNI_TRUE，Java虚拟机遇到错误选项时，忽略错误后继续执行；若被设置为JNI_FALSE，当遇到错误选项，Java虚拟机将错误返回后终止执行。
+ignoreUnrecognized是JavaVMInitArgs结构体jboolean类型的成员，当Java虚拟机独到设置错误的选项值时，该成员用来决定Java虚拟机是忽略错误后继续执行，还是返回错误后终止执行。若ignoreUnrecognized被设置为 =JNI_TRUE= ，Java虚拟机遇到错误选项时，忽略错误后继续执行；若被设置为 =JNI_FALSE= ，当遇到错误选项，Java虚拟机将错误返回后终止执行。
 
 接下来分析JavaVMOption结构体，它用来指定Java虚拟机的选项值。若想创建选项值，只要向结构体的optionString成员指定一个字符串，用作Java虚拟机选项的形式。比如示例中的"-Djava.class.path=."，用来设置标准选项，即将Java虚拟机要加载的类的默认目录设置为当前目录(.)，其形式为-Dproperty=value。
 
 #+BEGIN_SRC c
 res = JNI_CreateJavaVM(&vm, (void**)&env, &vm_args);
 #+END_SRC
-本行代码是整个程序的核心部分，即C应用程序调用JNI_CreateJavaVM()函数，生成并装载Java虚拟机。JNI_CreateJavaVM()函数的第一个参数类型为JavaVM,它表示Java虚拟机接口，用来生成或销毁Java虚拟机。DestroyJavaVM()是接口函数之一，该函数用来销毁Java虚拟机。
+本行代码是整个程序的核心部分，即C应用程序调用 =JNI_CreateJavaVM()= 函数，生成并装载Java虚拟机。 =JNI_CreateJavaVM()= 函数的第一个参数类型为JavaVM,它表示Java虚拟机接口，用来生成或销毁Java虚拟机。DestroyJavaVM()是接口函数之一，该函数用来销毁Java虚拟机。
 
-在JNI_CreateJavaVM()函数的第二个参数env中，保存着JNI接口的指针的地址。通过env所指的JNI接口指针，可以使用各种JNI函数，即在C/C++中，通过env，可以生成Java对象，调用相应方法等。
+在 =JNI_CreateJavaVM()= 函数的第二个参数env中，保存着JNI接口的指针的地址。通过env所指的JNI接口指针，可以使用各种JNI函数，即在C/C++中，通过env，可以生成Java对象，调用相应方法等。
 
-| JNI Invocation API-JNI_CreateJavaVM |                                                                 |
+| JNI Invocation API- =JNI_CreateJavaVM= |                                                                 |
 |-------------------------------------+-----------------------------------------------------------------|
-| 形式                                | jint JNI_CreateJavaVM(javaVM **vm, JNIEnv **env, void *vm_args) |
+| 形式                                | jint =JNI_CreateJavaVM= (javaVM **vm, JNIEnv **env, void *vm_args) |
 |-------------------------------------+-----------------------------------------------------------------|
 | 说明                                | 装载并初始化Java虚拟机                                                   |
 |-------------------------------------+-----------------------------------------------------------------|
 | 参数                                |   vm: JavaVM指针的地址                                               |
 |                                     | env: JNI接口指针的地址                                          |
-|                                     | vm_args: 传递给Java虚拟机的参数                                 |
+|                                     | =vm_args:= 传递给Java虚拟机的参数                               |
 |-------------------------------------+-----------------------------------------------------------------|
 | 返回值                           | 成功，返回0；失败，返回负值                                                  | 
 
@@ -789,7 +789,7 @@ args[0] = "Hello Invocation API!"
 #+BEGIN_SRC c
 (*env)->CallStaticVoidMethod(env, cls, mid, args);
 #+END_SRC
-=本行代码通过CallStaticVoidMethod()函数调用InvocationApiTest类的main()方法。在上面创建的Stringp[]数组是CallStaticVoidMethod()函数的第四个参数，该参数会被传递给InvocationApiTest类的main()方法。当InvocationApiTest类的main()方法被调用执行时，它会向控制台输出args字符串数组的args[0]元素中的字符串。=
+=本行代码通过CallStaticVoidMethod()函数调用InvocationApiTest类的main()方法。在上面创建的Stringp[]数组是CallStaticVoidMethod()函数的第四个参数，该参数会被传递给InvocationApiTest类的main()方法。当InvocationApiTest类的main()方法被调用执行时，它会向控制台输出args字符串数组的 args[0]元素中的字符串。=
 
 * 直接注册JNI本地函数
 
@@ -815,7 +815,7 @@ Java虚拟机在运行包含本地方法的Java应用程序时，要经过以下
 void printHelloNative(JNIEnv *env, jobject obj);
 void printStringNative(JNIEnv *env, jobject obj, jstring string);
 
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
+JNIEXPORT jint JNICALL JNI_Onoad(JavaVM *vm, void *reserved)
 {
     JNIEnv *env = NULL;
     JNINativeMethod nm[2];
@@ -869,7 +869,7 @@ void printStringNative(JNIEnv *env, jobject obj, jstring string);
         printf("Error");
 	return JNI_ERR;
 #+END_SRC
-在JNI_OnLoad()函数中首先判断JNI的版本，即调用GetEnv()函数，判断Java虚拟机是否支持JNI1.4。若java虚拟机支持JNI1.4，JNI_OnLoad()函数就会返回JNI_VERSION_1_4；若不支持，JNI_OnLoad()函数就会返回JNI_ERR，并终止装载库的行为。
+在 =JNI_OnLoad()= 函数中首先判断JNI的版本，即调用GetEnv()函数，判断Java虚拟机是否支持JNI1.4。若java虚拟机支持JNI1.4， =JNI_OnLoad()= 函数就会返回 =JNI_VERSION_1_4= ；若不支持， =JNI_OnLoad()= 函数就会返回 =JNI_ERR= ，并终止装载库的行为。
 
 当GetEnv()函数调用完毕后，JNI接口指针被保存到env变量中，在调用FindClass()、RegisterNatives()等JNI函数时，可以使用该变量。
 | JNI Invocation API - GetEnv |                                                   |
@@ -956,4 +956,144 @@ Andoird NDK ( Native Development Kit )
 
 + bitmap-plasma: 一个使用本地代码访问Android Bitmap对象的像素缓存区的示例程序
 
-** 小结
+** hello-jni
+
+内容：
+
+AndroidManifest.xml default.properties /jni /res /src /tests
+
+ndk-build后：
+
+AndroidManifest.xml default.properties /jni /libs /obj /res /src /tests
+
+#+BEGIN_SRC sh
+hello-jni$ tree
+.
+├── AndroidManifest.xml
+├── default.properties
+├── jni
+│   ├── Android.mk
+│   └── hello-jni.c
+├── libs
+│   └── armeabi
+│       ├── gdbserver
+│       ├── gdb.setup
+│       └── libhello-jni.so
+├── obj
+│   └── local
+│       └── armeabi
+│           ├── libhello-jni.so
+│           └── objs-debug
+│               └── hello-jni
+│                   ├── hello-jni.o
+│                   └── hello-jni.o.d
+├── res
+│   └── values
+│       └── strings.xml
+├── src
+│   └── com
+│       └── example
+│           └── hellojni
+│               └── HelloJni.java
+└── tests
+    ├── AndroidManifest.xml
+    ├── default.properties
+    └── src
+        └── com
+            └── example
+                └── hellojni
+                    └── HelloJniTest.java
+
+19 directories, 15 files
+#+END_SRC
+
+关键的文件：
+
+java层： HelloJni.java HelloJniTest.java 资源文件：strings.xml
+
+jni层: hello-jni.c Android.mk
+
+下面主要需要分析 HelloJni.java, hello-jni.c, Android.mk 三个文件
+
+HelloJni.java
+#+BEGIN_SRC java
+package com.example.hellojni;
+
+import android.app.Activity;
+import android.widget.TextView;
+import android.os.Bundle;
+
+public class HelloJni extends Activity
+{
+    /** onCreate函数在activity第一次被创建的时候调用 */
+    @Override
+    public void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+
+        /* 创建一个TextView并且设置它的内容.
+         * 文本的内容是通过本地方法获取的
+         */
+        TextView  tv = new TextView(this);
+        tv.setText( stringFromJNI() ); // 这里调用了本地方法
+        setContentView(tv);
+    }
+
+    /* 本地方法通过本地库hello-jni实现
+     * 本地库与这个应用程序已经打包在了一起
+     */
+    public native String  stringFromJNI();
+
+    /* 下面是另外一个方法的声明，这个方法没有通过hello-jni实现
+     * 这是为了说明，你可以声明任意的本地方法，在java代码中
+     * 它们的实现会在装载的本地库里寻找，当你首次调用它们的时候
+     * 尝试调用这个方法会引发java.lang.UnsatisfiedLinkError exception!
+     */
+    public native String  unimplementedStringFromJNI();
+
+    /* 下面的代码用来在应用程序开始的时候装载hello-jni库
+     * 这个库在安装的时候由包管理器已经安装好了
+     */
+    static {
+        System.loadLibrary("hello-jni");
+    }
+}
+#+END_SRC
+
+hello-jni.c
+#+BEGIN_SRC c
+#include <string.h>
+#include <jni.h>
+jstring java_com_example_hellojni_HelloJni_stringFromJNI(JNIEnv *env, jobject thiz)
+{
+    return (*env)->NewStringUTF(env, "Hello from JNI !");
+}
+#+END_SRC
+
+Android.mk
+#+BEGIN_SRC sh
+LOCAL_PATH := $(call my-dir)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := hello-jni
+LOCALSRC_FILES := hello-jni.c
+
+include $(BUILD_SHARED_LIBRARY)
+#+END_SRC
+
+一个Android.mk文件首先必须定义好 =LOCAL_PATH= 变量，用于在开发树中查找源文件。 =LOCAL_PATH= 变量在Android.mk文件的最开始被定义，若无特殊情况，一般采用如下编写形式：
+#+BEGIN_SRC sh
+LOCAL_PATH := $(call my-dir)
+#+END_SRC
+$(call my-dir)用来保存my-dir宏函数的返回值。my-dir是一个宏函数，由编译系统提供，用于返回包含Android.mk文件的目录，即将Android.mk文件所在的目录设置为基本目录。
+
+一般来说，本地库的源代码与Android.mk文件在同一目录下，即在 =<PROJECT_HOME>/jni= 目录下。若将$(call my-dir)返回值保存到 =LOCAL_PATH= 变量中，即可准确指定NDK编译的基本文件目录。
+
+=include $(CLEAR_VARS)= 用来初始化Android.mk文件中" =LOCAL_XXX= "即以 =LOCAL_= 开头的变量，如 =LOCAL_MODULE= 、 =LOCAL_SRC_FILES= 等变量，但在一开始的 =LOCAL_PATH= 变量除外。由于Android编译系统将会 =LOCAL_XXX= 变量用作全局变量，所以需要使用该命令初始化这些变量。
+
+=LOCAL_MODULE= 变量必须被定义，以标识在Android.mk文件中描述的每个模块，即要生成的库的名称。该名称必须唯一，且不含空格，编译系统会自动产生合适的前缀和后缀，比如设置 =LOCAL_MODULE= 变量为ndk-exam, 编译后缀会生成名为libndk-exam.so的共享库。
+
+=LOCAL_SRC_FILES= 变量必须包含将要编译打包进模块中的各个源文件。这些源文件所在目录即是 =LOCAL_PATH= 变量指定的目录，即 =<PROJECT_HOME>/jni= 目录。
+
+=include $(BUILD_SHARED_LIBRARY)= 使用 =LOCAL_MODULE= 、 =LOCAL_SRC_FILES= 等变量值，创建名称为 =lib$(LOCAL_MODULE).so= 的共享库。

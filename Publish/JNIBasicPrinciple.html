@@ -6,7 +6,7 @@ lang="en" xml:lang="en">
 <title>JNI与NDK</title>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2012-07-31 17:29:19 CST"/>
+<meta name="generated" content="2012-08-01 11:05:22 CST"/>
 <meta name="author" content="Wizard.Yang"/>
 <style type="text/css">
  <!--/*--><![CDATA[/*><!--*/
@@ -124,7 +124,7 @@ lang="en" xml:lang="en">
 <ul>
 <li><a href="#sec-5.1">5.1 安装Androdi NDK </a></li>
 <li><a href="#sec-5.2">5.2 使用Android NDK 开发步骤 </a></li>
-<li><a href="#sec-5.3">5.3 小结 </a></li>
+<li><a href="#sec-5.3">5.3 hello-jni </a></li>
 </ul>
 </li>
 </ul>
@@ -645,7 +645,7 @@ JNIEXPORT jobject JNICALL Java_JniFuncMain_createJniObject(JNIEnv *env, jclass c
 (3) 使用12中获得的jclass与jfieldID值，获取或设置成员变量值。
 </p>
 <p>
-依据以上顺序，待读取树脂的staticIntField成员变量在JniFuncMain类被声明。JniFuncMain类的jclass值被传递给JNI本地函数java<sub>JniFuncMain</sub><sub>createJniObject</sub>()的第二个参数中，若想获取指定类的jclass值，调用JNI函数FindClass()即可。
+依据以上顺序，待读取树脂的staticIntField成员变量在JniFuncMain类被声明。JniFuncMain类的jclass值被传递给JNI本地函数 <code>java_JniFuncMain_createJniObject()</code> 的第二个参数中，若想获取指定类的jclass值，调用JNI函数FindClass()即可。
 </p>
 <p>
 若想在本地代码中访问Java的成员变量，必须获取相应成员变量的ID值。例子中成员变量的ID保存在jfieldID类型的变量中。由于待读取数值的staticIntField成员变量时JniFUncMain类的静态变量，在获取staticIntField的ID时，影调用名称为GetStaticFieldID()的JNI函数。
@@ -690,13 +690,13 @@ JNIEXPORT jobject JNICALL Java_JniFuncMain_createJniObject(JNIEnv *env, jclass c
 
 
 <p>
-以上两个函数都要去提供成员变量的签名。成员变量与成员方法都拥有签名，使用&lt;JDK<sub>HOME&gt</sub>;/bin目录下的javap命令(java反编译器)，可以获取成员变量活成员方法签名。
+以上两个函数都要去提供成员变量的签名。成员变量与成员方法都拥有签名，使用 <code>&lt;JDK_HOME&gt;/bin</code> 目录下的javap命令(java反编译器)，可以获取成员变量活成员方法签名。
 </p>
 <p>
 Tip: 在JNI中获取成员变量活成员方法签名
 </p>
 <p>
-形式： javap [选项] '类名'
+形式： javap <code>[选项]</code>  '类名'
 </p>
 <p>
 选项： -s 输出java签名
@@ -1358,7 +1358,7 @@ env-&gt;SetIntField(newObject, fid, resutl);
 接下来，看一下结构体中各个成员的含义。
 </p>
 <p>
-JavaVMInitArgs结构体的versino成员用来指定传递诶虚拟机的选项的变量的形式，设定在jni.h头文件中定义的JNI<sub>Version</sub><sub>1</sub><sub>2的值。nOptions与options用来指定JavaVMInitArgs所指的JavaVMOption结构体数组值。nOptions指定JavaVMOption结构体数组元素的个数，options用来指向JavaVMOption结构体的地址。示例中只设置了一个Java虚拟机选项，即JavaVMOption结构体数组仅有一个元素，声明如下</sub>
+JavaVMInitArgs结构体的versino成员用来指定传递诶虚拟机的选项的变量的形式，设定在jni.h头文件中定义的 <code>JNI_Version_1_2</code> 的值。nOptions与options用来指定JavaVMInitArgs所指的JavaVMOption结构体数组值。nOptions指定JavaVMOption结构体数组元素的个数，options用来指向JavaVMOption结构体的地址。示例中只设置了一个Java虚拟机选项，即JavaVMOption结构体数组仅有一个元素，声明如下
 </p>
 
 
@@ -1382,7 +1382,7 @@ vm_args.options = options; <span style="color: #cccccc; font-style: italic;">// 
 
 
 <p>
-ignoreUnrecognized是JavaVMInitArgs结构体jboolean类型的成员，当Java虚拟机独到设置错误的选项值时，该成员用来决定Java虚拟机是忽略错误后继续执行，还是返回错误后终止执行。若ignoreUnrecognized被设置为JNI<sub>TRUE，Java虚拟机遇到错误选项时，忽略错误后继续执行；若被设置为JNI</sub><sub>FALSE，当遇到错误选项，Java虚拟机将错误返回后终止执行。</sub>
+ignoreUnrecognized是JavaVMInitArgs结构体jboolean类型的成员，当Java虚拟机独到设置错误的选项值时，该成员用来决定Java虚拟机是忽略错误后继续执行，还是返回错误后终止执行。若ignoreUnrecognized被设置为 <code>JNI_TRUE</code> ，Java虚拟机遇到错误选项时，忽略错误后继续执行；若被设置为 <code>JNI_FALSE</code> ，当遇到错误选项，Java虚拟机将错误返回后终止执行。
 </p>
 <p>
 接下来分析JavaVMOption结构体，它用来指定Java虚拟机的选项值。若想创建选项值，只要向结构体的optionString成员指定一个字符串，用作Java虚拟机选项的形式。比如示例中的"-Djava.class.path=."，用来设置标准选项，即将Java虚拟机要加载的类的默认目录设置为当前目录(.)，其形式为-Dproperty=value。
@@ -1397,18 +1397,18 @@ res = JNI_CreateJavaVM(&amp;vm, (<span style="color: #9acd32; font-weight: bold;
 
 
 <p>
-本行代码是整个程序的核心部分，即C应用程序调用JNI<sub>CreateJavaVM</sub>()函数，生成并装载Java虚拟机。JNI<sub>CreateJavaVM</sub>()函数的第一个参数类型为JavaVM,它表示Java虚拟机接口，用来生成或销毁Java虚拟机。DestroyJavaVM()是接口函数之一，该函数用来销毁Java虚拟机。
+本行代码是整个程序的核心部分，即C应用程序调用 <code>JNI_CreateJavaVM()</code> 函数，生成并装载Java虚拟机。 <code>JNI_CreateJavaVM()</code> 函数的第一个参数类型为JavaVM,它表示Java虚拟机接口，用来生成或销毁Java虚拟机。DestroyJavaVM()是接口函数之一，该函数用来销毁Java虚拟机。
 </p>
 <p>
-在JNI<sub>CreateJavaVM</sub>()函数的第二个参数env中，保存着JNI接口的指针的地址。通过env所指的JNI接口指针，可以使用各种JNI函数，即在C/C++中，通过env，可以生成Java对象，调用相应方法等。
+在 <code>JNI_CreateJavaVM()</code> 函数的第二个参数env中，保存着JNI接口的指针的地址。通过env所指的JNI接口指针，可以使用各种JNI函数，即在C/C++中，通过env，可以生成Java对象，调用相应方法等。
 </p>
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 <col align="left"></col><col align="left"></col>
 <thead>
-<tr><th>JNI Invocation API-JNI<sub>CreateJavaVM</sub></th><th></th></tr>
+<tr><th>JNI Invocation API- <code>JNI_CreateJavaVM</code></th><th></th></tr>
 </thead>
 <tbody>
-<tr><td>形式</td><td>jint JNI<sub>CreateJavaVM</sub>(javaVM **vm, JNIEnv **env, void *vm<sub>args</sub>)</td></tr>
+<tr><td>形式</td><td>jint <code>JNI_CreateJavaVM</code> (javaVM **vm, JNIEnv **env, void *vm<sub>args</sub>)</td></tr>
 </tbody>
 <tbody>
 <tr><td>说明</td><td>装载并初始化Java虚拟机</td></tr>
@@ -1416,7 +1416,7 @@ res = JNI_CreateJavaVM(&amp;vm, (<span style="color: #9acd32; font-weight: bold;
 <tbody>
 <tr><td>参数</td><td>vm: JavaVM指针的地址</td></tr>
 <tr><td></td><td>env: JNI接口指针的地址</td></tr>
-<tr><td></td><td>vm<sub>args</sub>: 传递给Java虚拟机的参数</td></tr>
+<tr><td></td><td><code>vm_args:</code> 传递给Java虚拟机的参数</td></tr>
 </tbody>
 <tbody>
 <tr><td>返回值</td><td>成功，返回0；失败，返回负值</td></tr>
@@ -1523,7 +1523,7 @@ args[0] = <span style="color: #8fbc8f; font-style: italic;">"Hello Invocation AP
 
 
 <p>
-<code>本行代码通过CallStaticVoidMethod()函数调用InvocationApiTest类的main()方法。在上面创建的Stringp[]数组是CallStaticVoidMethod()函数的第四个参数，该参数会被传递给InvocationApiTest类的main()方法。当InvocationApiTest类的main()方法被调用执行时，它会向控制台输出args字符串数组的args[1]元素中的字符串。</code>
+<code>本行代码通过CallStaticVoidMethod()函数调用InvocationApiTest类的main()方法。在上面创建的Stringp[]数组是CallStaticVoidMethod()函数的第四个参数，该参数会被传递给InvocationApiTest类的main()方法。当InvocationApiTest类的main()方法被调用执行时，它会向控制台输出args字符串数组的 args[1]元素中的字符串。</code>
 </p>
 </div>
 </div>
@@ -1577,7 +1577,7 @@ Java虚拟机检索加载进来的库函数符号，在其中查找与Java本地
 </span><span style="color: #9acd32; font-weight: bold;">void</span> printHelloNative(JNIEnv *env, <span style="color: #9acd32; font-weight: bold;">jobject</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">obj</span>);
 <span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">printStringNative</span>(JNIEnv *env, <span style="color: #9acd32; font-weight: bold;">jobject</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">obj</span>, <span style="color: #9acd32; font-weight: bold;">jstring</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">string</span>);
 
-JNIEXPORT jint <span style="color: #9acd32; font-weight: bold;">JNICALL</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">JNI_OnLoad</span>(JavaVM *vm, <span style="color: #9acd32; font-weight: bold;">void</span> *reserved)
+JNIEXPORT jint <span style="color: #9acd32; font-weight: bold;">JNICALL</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">JNI_Onoad</span>(JavaVM *vm, <span style="color: #9acd32; font-weight: bold;">void</span> *reserved)
 {
     JNIEnv *env = NULL;
     <span style="color: #9acd32; font-weight: bold;">JNINativeMethod</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">nm</span>[2];
@@ -1646,7 +1646,7 @@ JNIEXPORT jint <span style="color: #9acd32; font-weight: bold;">JNICALL</span> <
 
 
 <p>
-在JNI<sub>OnLoad</sub>()函数中首先判断JNI的版本，即调用GetEnv()函数，判断Java虚拟机是否支持JNI1.4。若java虚拟机支持JNI1.4，JNI<sub>OnLoad</sub>()函数就会返回JNI<sub>VERSION</sub><sub>1</sub><sub>4；若不支持，JNI</sub><sub>OnLoad</sub>()函数就会返回JNI<sub>ERR，并终止装载库的行为。</sub>
+在 <code>JNI_OnLoad()</code> 函数中首先判断JNI的版本，即调用GetEnv()函数，判断Java虚拟机是否支持JNI1.4。若java虚拟机支持JNI1.4， <code>JNI_OnLoad()</code> 函数就会返回 <code>JNI_VERSION_1_4</code> ；若不支持， <code>JNI_OnLoad()</code> 函数就会返回 <code>JNI_ERR</code> ，并终止装载库的行为。
 </p>
 <p>
 当GetEnv()函数调用完毕后，JNI接口指针被保存到env变量中，在调用FindClass()、RegisterNatives()等JNI函数时，可以使用该变量。
@@ -1835,10 +1835,198 @@ bitmap-plasma: 一个使用本地代码访问Android Bitmap对象的像素缓存
 </div>
 
 <div id="outline-container-5.3" class="outline-3">
-<h3 id="sec-5.3">5.3 小结 </h3>
+<h3 id="sec-5.3">5.3 hello-jni </h3>
 <div id="text-5.3">
 
 
+<p>
+内容：
+</p>
+<p>
+AndroidManifest.xml default.properties /jni /res /src /tests
+</p>
+<p>
+ndk-build后：
+</p>
+<p>
+AndroidManifest.xml default.properties /jni /libs /obj /res /src /tests
+</p>
+
+
+
+<pre class="src src-sh">
+hello-jni$ tree
+<span style="color: #98fb98;">.</span>
+&#9500;&#9472;&#9472; AndroidManifest.xml
+&#9500;&#9472;&#9472; default.properties
+&#9500;&#9472;&#9472; jni
+&#9474;&#160;&#160; &#9500;&#9472;&#9472; Android.mk
+&#9474;&#160;&#160; &#9492;&#9472;&#9472; hello-jni.c
+&#9500;&#9472;&#9472; libs
+&#9474;&#160;&#160; &#9492;&#9472;&#9472; armeabi
+&#9474;&#160;&#160;     &#9500;&#9472;&#9472; gdbserver
+&#9474;&#160;&#160;     &#9500;&#9472;&#9472; gdb.setup
+&#9474;&#160;&#160;     &#9492;&#9472;&#9472; libhello-jni.so
+&#9500;&#9472;&#9472; obj
+&#9474;&#160;&#160; &#9492;&#9472;&#9472; local
+&#9474;&#160;&#160;     &#9492;&#9472;&#9472; armeabi
+&#9474;&#160;&#160;         &#9500;&#9472;&#9472; libhello-jni.so
+&#9474;&#160;&#160;         &#9492;&#9472;&#9472; objs-debug
+&#9474;&#160;&#160;             &#9492;&#9472;&#9472; hello-jni
+&#9474;&#160;&#160;                 &#9500;&#9472;&#9472; hello-jni.o
+&#9474;&#160;&#160;                 &#9492;&#9472;&#9472; hello-jni.o.d
+&#9500;&#9472;&#9472; res
+&#9474;&#160;&#160; &#9492;&#9472;&#9472; values
+&#9474;&#160;&#160;     &#9492;&#9472;&#9472; strings.xml
+&#9500;&#9472;&#9472; src
+&#9474;&#160;&#160; &#9492;&#9472;&#9472; com
+&#9474;&#160;&#160;     &#9492;&#9472;&#9472; example
+&#9474;&#160;&#160;         &#9492;&#9472;&#9472; hellojni
+&#9474;&#160;&#160;             &#9492;&#9472;&#9472; HelloJni.java
+&#9492;&#9472;&#9472; tests
+    &#9500;&#9472;&#9472; AndroidManifest.xml
+    &#9500;&#9472;&#9472; default.properties
+    &#9492;&#9472;&#9472; src
+        &#9492;&#9472;&#9472; com
+            &#9492;&#9472;&#9472; example
+                &#9492;&#9472;&#9472; hellojni
+                    &#9492;&#9472;&#9472; HelloJniTest.java
+
+19 directories, 15 files
+</pre>
+
+
+
+
+<p>
+关键的文件：
+</p>
+<p>
+java层： HelloJni.java HelloJniTest.java 资源文件：strings.xml
+</p>
+<p>
+jni层: hello-jni.c Android.mk
+</p>
+<p>
+下面主要需要分析 HelloJni.java, hello-jni.c, Android.mk 三个文件
+</p>
+<p>
+HelloJni.java
+</p>
+
+
+<pre class="src src-java">
+<span style="color: #add8e6; font-weight: bold;">package</span> com.example.<span style="color: #add8e6;">hellojni</span>;
+
+<span style="color: #add8e6; font-weight: bold;">import</span> <span style="color: #add8e6;">android</span>.<span style="color: #add8e6;">app</span>.<span style="color: #9acd32; font-weight: bold;">Activity</span>;
+<span style="color: #add8e6; font-weight: bold;">import</span> <span style="color: #add8e6;">android</span>.<span style="color: #add8e6;">widget</span>.<span style="color: #9acd32; font-weight: bold;">TextView</span>;
+<span style="color: #add8e6; font-weight: bold;">import</span> <span style="color: #add8e6;">android</span>.<span style="color: #add8e6;">os</span>.<span style="color: #9acd32; font-weight: bold;">Bundle</span>;
+
+<span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #add8e6; font-weight: bold;">class</span> <span style="color: #9acd32; font-weight: bold;">HelloJni</span> <span style="color: #add8e6; font-weight: bold;">extends</span> <span style="color: #9acd32; font-weight: bold;">Activity</span>
+{
+    <span style="color: #8fbc8f; font-weight: bold;">/** onCreate&#20989;&#25968;&#22312;activity&#31532;&#19968;&#27425;&#34987;&#21019;&#24314;&#30340;&#26102;&#20505;&#35843;&#29992; */</span>
+    @Override
+    <span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #9acd32; font-weight: bold;">void</span> onCreate(<span style="color: #9acd32; font-weight: bold;">Bundle</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">savedInstanceState</span>)
+    {
+        <span style="color: #add8e6; font-weight: bold;">super</span>.onCreate(savedInstanceState);
+
+        <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">&#21019;&#24314;&#19968;&#20010;TextView&#24182;&#19988;&#35774;&#32622;&#23427;&#30340;&#20869;&#23481;.
+         * &#25991;&#26412;&#30340;&#20869;&#23481;&#26159;&#36890;&#36807;&#26412;&#22320;&#26041;&#27861;&#33719;&#21462;&#30340;
+         */</span>
+        <span style="color: #9acd32; font-weight: bold;">TextView</span>  <span style="color: #add8e6; font-weight: bold; font-style: italic;">tv</span> = <span style="color: #add8e6; font-weight: bold;">new</span> <span style="color: #9acd32; font-weight: bold;">TextView</span>(<span style="color: #add8e6; font-weight: bold;">this</span>);
+        tv.setText( stringFromJNI() ); <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#36825;&#37324;&#35843;&#29992;&#20102;&#26412;&#22320;&#26041;&#27861;
+</span>        setContentView(tv);
+    }
+
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">&#26412;&#22320;&#26041;&#27861;&#36890;&#36807;&#26412;&#22320;&#24211;hello-jni&#23454;&#29616;
+     * &#26412;&#22320;&#24211;&#19982;&#36825;&#20010;&#24212;&#29992;&#31243;&#24207;&#24050;&#32463;&#25171;&#21253;&#22312;&#20102;&#19968;&#36215;
+     */</span>
+    <span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #add8e6; font-weight: bold;">native</span> <span style="color: #9acd32; font-weight: bold;">String</span>  <span style="color: #ffff00; font-weight: bold; font-style: italic;">stringFromJNI</span>();
+
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">&#19979;&#38754;&#26159;&#21478;&#22806;&#19968;&#20010;&#26041;&#27861;&#30340;&#22768;&#26126;&#65292;&#36825;&#20010;&#26041;&#27861;&#27809;&#26377;&#36890;&#36807;hello-jni&#23454;&#29616;
+     * &#36825;&#26159;&#20026;&#20102;&#35828;&#26126;&#65292;&#20320;&#21487;&#20197;&#22768;&#26126;&#20219;&#24847;&#30340;&#26412;&#22320;&#26041;&#27861;&#65292;&#22312;java&#20195;&#30721;&#20013;
+     * &#23427;&#20204;&#30340;&#23454;&#29616;&#20250;&#22312;&#35013;&#36733;&#30340;&#26412;&#22320;&#24211;&#37324;&#23547;&#25214;&#65292;&#24403;&#20320;&#39318;&#27425;&#35843;&#29992;&#23427;&#20204;&#30340;&#26102;&#20505;
+     * &#23581;&#35797;&#35843;&#29992;&#36825;&#20010;&#26041;&#27861;&#20250;&#24341;&#21457;java.lang.UnsatisfiedLinkError exception!
+     */</span>
+    <span style="color: #add8e6; font-weight: bold;">public</span> <span style="color: #add8e6; font-weight: bold;">native</span> <span style="color: #9acd32; font-weight: bold;">String</span>  <span style="color: #ffff00; font-weight: bold; font-style: italic;">unimplementedStringFromJNI</span>();
+
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">&#19979;&#38754;&#30340;&#20195;&#30721;&#29992;&#26469;&#22312;&#24212;&#29992;&#31243;&#24207;&#24320;&#22987;&#30340;&#26102;&#20505;&#35013;&#36733;hello-jni&#24211;
+     * &#36825;&#20010;&#24211;&#22312;&#23433;&#35013;&#30340;&#26102;&#20505;&#30001;&#21253;&#31649;&#29702;&#22120;&#24050;&#32463;&#23433;&#35013;&#22909;&#20102;
+     */</span>
+    <span style="color: #add8e6; font-weight: bold;">static</span> {
+        System.loadLibrary(<span style="color: #8fbc8f; font-style: italic;">"hello-jni"</span>);
+    }
+}
+</pre>
+
+
+
+
+<p>
+hello-jni.c
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;string.h&gt;</span>
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;jni.h&gt;</span>
+<span style="color: #9acd32; font-weight: bold;">jstring</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">java_com_example_hellojni_HelloJni_stringFromJNI</span>(<span style="color: #9acd32; font-weight: bold;">JNIEnv</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">env</span>, <span style="color: #9acd32; font-weight: bold;">jobject</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">thiz</span>)
+{
+    <span style="color: #add8e6; font-weight: bold;">return</span> (*env)-&gt;NewStringUTF(env, <span style="color: #8fbc8f; font-style: italic;">"Hello from JNI !"</span>);
+}
+</pre>
+
+
+
+
+<p>
+Android.mk
+</p>
+
+
+<pre class="src src-sh">
+LOCAL_PATH := $(<span style="color: #fa8072;">call</span> my-dir)
+
+include $(<span style="color: #fa8072;">CLEAR_VARS</span>)
+
+LOCAL_MODULE := hello-jni
+LOCALSRC_FILES := hello-jni.c
+
+include $(<span style="color: #fa8072;">BUILD_SHARED_LIBRARY</span>)
+</pre>
+
+
+
+
+<p>
+一个Android.mk文件首先必须定义好 <code>LOCAL_PATH</code> 变量，用于在开发树中查找源文件。 <code>LOCAL_PATH</code> 变量在Android.mk文件的最开始被定义，若无特殊情况，一般采用如下编写形式：
+</p>
+
+
+<pre class="src src-sh">
+LOCAL_PATH := $(<span style="color: #fa8072;">call</span> my-dir)
+</pre>
+
+
+
+<p>
+$(call my-dir)用来保存my-dir宏函数的返回值。my-dir是一个宏函数，由编译系统提供，用于返回包含Android.mk文件的目录，即将Android.mk文件所在的目录设置为基本目录。
+</p>
+<p>
+一般来说，本地库的源代码与Android.mk文件在同一目录下，即在 <code>&lt;PROJECT_HOME&gt;/jni</code> 目录下。若将$(call my-dir)返回值保存到 <code>LOCAL_PATH</code> 变量中，即可准确指定NDK编译的基本文件目录。
+</p>
+<p>
+<code>include $(CLEAR_VARS)</code> 用来初始化Android.mk文件中" <code>LOCAL_XXX</code> "即以 <code>LOCAL_</code> 开头的变量，如 <code>LOCAL_MODULE</code> 、 <code>LOCAL_SRC_FILES</code> 等变量，但在一开始的 <code>LOCAL_PATH</code> 变量除外。由于Android编译系统将会 <code>LOCAL_XXX</code> 变量用作全局变量，所以需要使用该命令初始化这些变量。
+</p>
+<p>
+<code>LOCAL_MODULE</code> 变量必须被定义，以标识在Android.mk文件中描述的每个模块，即要生成的库的名称。该名称必须唯一，且不含空格，编译系统会自动产生合适的前缀和后缀，比如设置 <code>LOCAL_MODULE</code> 变量为ndk-exam, 编译后缀会生成名为libndk-exam.so的共享库。
+</p>
+<p>
+<code>LOCAL_SRC_FILES</code> 变量必须包含将要编译打包进模块中的各个源文件。这些源文件所在目录即是 <code>LOCAL_PATH</code> 变量指定的目录，即 <code>&lt;PROJECT_HOME&gt;/jni</code> 目录。
+</p>
+<p>
+<code>include $(BUILD_SHARED_LIBRARY)</code> 使用 <code>LOCAL_MODULE</code> 、 <code>LOCAL_SRC_FILES</code> 等变量值，创建名称为 <code>lib$(LOCAL_MODULE).so</code> 的共享库。
+</p>
 
 </div>
 </div>
@@ -1853,6 +2041,6 @@ bitmap-plasma: 一个使用本地代码访问Android Bitmap对象的像素缓存
 <div id="postamble"><p class="author"> Author: Wizard.Yang
 <a href="mailto:xblandy@gmail.com">&lt;xblandy@gmail.com&gt;</a>
 </p>
-<p class="date"> Date: 2012-07-31 17:29:19 CST</p>
+<p class="date"> Date: 2012-08-01 11:05:22 CST</p>
 </div></body>
 </html>

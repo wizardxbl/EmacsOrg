@@ -1,0 +1,44 @@
+
+
+
+* Design Overview
+
+** Chapter 2
+
+本章关注JNI的设计问题。本章的大多数设计问题都与本地方法相关。Invocation API的设计在第五章。
+
+** JNI Interface Functions and Pointers
+
+本地代码通过调用JNI函数来访问JavaVM的特性。JNI函数通过接口指针产生作用。一个接口指针是一个指向指针的指针。这个指针指向了一个指针数组，每一个成员都指向了一个接口函数。每个接口函数都在数组里预定一了偏移量。
+
+下图说明了一个接口指针的组织：
+
+
+
+*** Loading and Linking Native Methods
+
+** Resolving Native Method Names
+
+*** Native Method Arguments
+
+** Referencing Java Objects
+
+** Global and Local References
+
+*** Implementing Local References
+
+** Accessing Java Objects
+
+** Accessing Primitive Arrays
+
+*** Accessing Fields and Methods
+
+** Reporting Projramming Errors
+
+*** Java Exceptions
+
+** Exceptions and Error Codes
+
+*** Asynchronous Exceptions
+
+*** Exception Handling

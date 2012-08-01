@@ -1,0 +1,334 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+lang="en" xml:lang="en">
+<head>
+<title>Introduction</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="2012-08-01 16:25:36 CST"/>
+<meta name="author" content="Wizard.Yang"/>
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  html { font-family: Times, serif; font-size: 12pt; }
+  .title  { text-align: center; }
+  .todo   { color: red; }
+  .done   { color: green; }
+  .tag    { background-color:lightblue; font-weight:normal }
+  .target { }
+  .timestamp { color: grey }
+  .timestamp-kwd { color: CadetBlue }
+  p.verse { margin-left: 3% }
+  pre {
+	border: 1pt solid #AEBDCC;
+	background-color: #F3F5F7;
+	padding: 5pt;
+	font-family: courier, monospace;
+        font-size: 90%;
+        overflow:auto;
+  }
+  table { border-collapse: collapse; }
+  td, th { vertical-align: top; }
+  dt { font-weight: bold; }
+  div.figure { padding: 0.5em; }
+  div.figure p { text-align: center; }
+  .linenr { font-size:smaller }
+  .code-highlighted {background-color:#ffff00;}
+  .org-info-js_info-navigation { border-style:none; }
+  #org-info-js_console-label { font-size:10px; font-weight:bold;
+                               white-space:nowrap; }
+  .org-info-js_search-highlight {background-color:#ffff00; color:#000000;
+                                 font-weight:bold; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*/-->
+</script>
+</head><body>
+<h1 class="title">Introduction</h1>
+
+
+
+
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1 Chapter 1 </a>
+<ul>
+<li><a href="#sec-1.1">1.1 Java Native Interface Overivew </a></li>
+<li><a href="#sec-1.2">1.2 Historical Background </a>
+<ul>
+<li><a href="#sec-1.2.1">1.2.1 JDK 1.0 Native Method Interface </a></li>
+<li><a href="#sec-1.2.2">1.2.2 Java Runtime Interface </a></li>
+<li><a href="#sec-1.2.3">1.2.3 Raw Native Interface and Java/COM Interface </a></li>
+</ul>
+</li>
+<li><a href="#sec-1.3">1.3 Objectives </a></li>
+<li><a href="#sec-1.4">1.4 Java Native Interface Approach </a></li>
+<li><a href="#sec-1.5">1.5 Programming to the JNI </a></li>
+<li><a href="#sec-1.6">1.6 Changes </a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1">1 Chapter 1 </h2>
+<div id="text-1">
+
+
+<p>
+本章介绍Java本地接口JNI。
+</p>
+<p>
+JNI是一种本地编程接口，它允许在Java虚拟机里运行的java代码能够与应用程序和库进行交互。
+</p>
+<p>
+库可以由其他语言编写，比如C、C++、汇编等。
+</p>
+<p>
+JNI最重要的优点是它在底层的Java虚拟机的实现上没有限制。因此，Java虚拟机可以为JNI增加支持而不需要影响到虚拟机的其他部分。
+</p>
+<p>
+程序员可以写一个版本的本地应用或者库，然后它能够在所有的支持JNI的Java虚拟机上工作。
+</p>
+<p>
+本章包括以下内容：
+</p>
+<ul>
+<li>
+Java Native Interface Overview
+
+</li>
+<li>
+Background
+
+</li>
+<li>
+Objectives
+
+</li>
+<li>
+Java Native Interface Approach
+
+</li>
+<li>
+Programming to the JNI
+
+</li>
+<li>
+Changes
+
+</li>
+</ul>
+
+</div>
+
+<div id="outline-container-1.1" class="outline-3">
+<h3 id="sec-1.1">1.1 Java Native Interface Overivew </h3>
+<div id="text-1.1">
+
+
+<p>
+有些时候你可以完全用Java来写应用。而有些情况下不能只用Java来完成需求。程序员使用JNI来写Java本地方法来处理这些情况。
+</p>
+<p>
+下面的例子说明了你需要使用Java本地方法的情况:
+</p>
+<ul>
+<li>
+标准的Java类库不支持应用程序需要的平台依赖特性
+
+</li>
+<li>
+你已经有了一个使用其他语言写的库，并且想要在java代码里面通过JNI来访问
+
+</li>
+<li>
+你想要实现一小段时间需求高的代码，使用低层语言，比如汇编
+
+</li>
+</ul>
+
+<p>通过使用JNI编程，你可以使用native方法来：
+</p>
+<ul>
+<li>
+创建，检查以及升级java对象，包括数组和字符串
+
+</li>
+<li>
+调用java方法
+
+</li>
+<li>
+捕获和抛出异常
+
+</li>
+<li>
+装载类和获取类信息
+
+</li>
+<li>
+使用运行时类型检查
+
+</li>
+</ul>
+
+<p>你也可以使用Invocation API来使能一个任意的本地应用来嵌入JavaVM。这允许编程者简单的编译他们已有的应用程序基于java的不需要链接VM的源码。
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-1.2" class="outline-3">
+<h3 id="sec-1.2">1.2 Historical Background </h3>
+<div id="text-1.2">
+
+
+<p>
+来自不同供应商的VM提供了不同的本地方法接口。这些不同的接口强制程序员编写，维护和发布多种版本的本地方法代码库，在已有的平台上。
+</p>
+<p>
+我们简单的测试了一些本地方法接口，比如：
+</p>
+<ul>
+<li>
+JDK1.0本地方法接口
+
+</li>
+<li>
+Netscape的Java运行时接口
+
+</li>
+<li>
+Microsoft的Raw 本地接口和Java/COM 接口
+
+</li>
+</ul>
+
+</div>
+
+<div id="outline-container-1.2.1" class="outline-4">
+<h4 id="sec-1.2.1">1.2.1 JDK 1.0 Native Method Interface </h4>
+<div id="text-1.2.1">
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1.2.2" class="outline-4">
+<h4 id="sec-1.2.2">1.2.2 Java Runtime Interface </h4>
+<div id="text-1.2.2">
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1.2.3" class="outline-4">
+<h4 id="sec-1.2.3">1.2.3 Raw Native Interface and Java/COM Interface </h4>
+<div id="text-1.2.3">
+
+
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-1.3" class="outline-3">
+<h3 id="sec-1.3">1.3 Objectives </h3>
+<div id="text-1.3">
+
+
+<p>
+我们相信这是一个独一无二的，很好的标准接口，为所有人提供了下面的优点：
+</p>
+<ul>
+<li>
+每个VM厂商都可以支持一个巨大的本地代码
+
+</li>
+<li>
+工具编译者将不需要维护不同种类的本地代码接口
+
+</li>
+<li>
+应用程序员将能够写一个版本的本地代码，然后在不同的VM上运行
+
+</li>
+</ul>
+
+<p>最好的实现本地方法接口的方法是包括Java虚拟机所有有趣的部分。因此我们组织了一系列的讨论，设计独一无二的本地方法接口。标准本地方法接口必须满足下面的需求：
+</p>
+<ul>
+<li>
+二进制兼容
+
+</li>
+<li>
+高效率
+
+</li>
+<li>
+功能性 - 接口必须暴露出足够的JavaVM内部的接口来允许本地方法完成有用的工作
+
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-1.4" class="outline-3">
+<h3 id="sec-1.4">1.4 Java Native Interface Approach </h3>
+<div id="text-1.4">
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1.5" class="outline-3">
+<h3 id="sec-1.5">1.5 Programming to the JNI </h3>
+<div id="text-1.5">
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1.6" class="outline-3">
+<h3 id="sec-1.6">1.6 Changes </h3>
+<div id="text-1.6">
+
+</div>
+</div>
+</div>
+<div id="postamble"><p class="author"> Author: Wizard.Yang
+<a href="mailto:xblandy@gmail.com">&lt;xblandy@gmail.com&gt;</a>
+</p>
+<p class="date"> Date: 2012-08-01 16:25:36 CST</p>
+</div></body>
+</html>
