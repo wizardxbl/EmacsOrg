@@ -1,0 +1,142 @@
+#+AUTHOR: Wizard.Yang
+#+EMAIL: yang1.yang@cs2c.com.cn
+#+TITLE: 全志工程编译总结
+#+TEXT: build SDK 时需要注意的一些地方
+#+OPTIONS: creator:nil
+
+A10 SDK 是由两个目录组成的：
+- android4.0
+- lichee
+
+* 一次正常的编译流程
+
+首先，android4.0和lichee目录是放在同一级目录下面的。
+
+然后，首先编译lichee目录中的内容。
+#+BEGIN_SRC sh
+cd lichee
+./build.sh -p sun4i_crane -k 3.0
+cd ..
+#+END_SRC
+执行完这里，能够编译完成u-boot和linux kernel
+
+其次编译android4.0目录中的内容。
+#+BEGIN_SRC sh
+cd android4.0
+source build/envsetup.sh
+lunch 
+extract-bsp
+make
+pack
+#+END_SRC
+执行完make之后，能够编译完成android的img，pack命令是将u-boot,kernel,android打包在一起，并且，这其中把配置文件也都打包进去了。
+
+至此，一个正常的编译流程就执行完了。最终生成了xxx.img的镜像，可以用全志提供的烧录工具通过USB烧写到板子上面。
+
+* 关于如何移植A10的代码到新的硬件平台上来满足我们的需求
+
+全志放出的代码是包含公板配置信息的，海克莱特的代码里面也包含了它们自己的一些项目配置。
+
+现在我们要在其中加入我们自己项目的配置信息。
+
+那么我们要在android4.0目录下和lichee下面分别进行改动。
+
+** 如何添加一个lunch项目
+
+首先找到路径android4.0/device/softwinner
+
+然后在里面建立一个新的目录，目录的名字就是我们想要建立的lunch的名字，一般我们可以直接把公板的目录或者是相似项目的目录拷贝过来直接改名字。 
+
+公板的名字是crane-evb,我们建立的目录叫做crane-a10。
+
+然后，把目录里面所有文件里面的crane-evb都改成crane-a10。
+
+可以先用grep "xxx" ./ -nsr 搜一下，然后把搜到的结果都改掉。
+
+做完这些动作之后，当你再次lunch的时候，就会看到目录里面多了crane-a10的条目。
+
+** 更改加载的驱动
+
+主要修改的文件是android4.0/device/softwinner/crane-a10/init.sun4i.rc
+
+在里面注释掉不需要的驱动，更改一些驱动，比如电阻触摸屏和电容触摸屏之间的切换。
+
+** 如何更改硬件上的配置
+
+新的代码里面采用了一种很灵活的可配置方法，采用了GPIO管脚的功能的配置文件。
+
+这个文件在lichee/tools/pack/chips/sun4i/configs/crane/下面，我们新建的a10目录下面。
+
+当然了crane/a10与crane-a10也是对应的。
+
+这个文件下面有两个配置文件， =sys_config1.fex= 和 =sys_config.fex= 。
+
+通常我们更改的更多的是 =sys_config1.fex= 文。
+
+对于 =sys_config.fex= 文件我们更关心的是分区信息。
+
+而对其他的功能则都是在 =sys_config1.fex= 中。
+
+下面将具体的描述一下一些常见的配置情况。
+
+*** 电容触摸屏的配置信息
+#+BEGIN_SRC sh
+[ctp_para]
+ctp_used                 =1
+ctp_name                 = "Goodix-TS"
+ctp_twi_id               = 2
+ctp_twi_addr             =0x5d
+ctp_screen_max_x         = 800
+ctp_screen_max_y         = 480
+ctp_revert_x_flag        = 0
+ctp_revert_y_flag        = 0
+ctp_exchange_x_y_flag    = 1
+
+ctp_int_port             = port:PH21<6><default>
+ctp_wakeup               = port:PB13<1><default><default><1>
+ctp_reset                = port:PB13<1><default><default><1>
+ctp_io_port              = port:PH21<0><default>
+#+END_SRC
+上面这段配置信息，配置了使用电容触摸屏以及对应的属性和GPIO管脚。
+
+对这段代码的解析工作是在linux下input/touchscreen里面对应的驱动里面调用的。
+
+新的linux kenel中有专门的一个文件来完成解析这个文件的工作。
+
+驱动程序里面将根据不同字段的属性给对应的变量赋值，从而达到灵活配置的目的。
+
+*** 电阻触摸屏的配置信息
+#+BEGIN_SRC sh
+[rtp_para]
+rtp_used      =0
+rtp_screen_size =7
+rtp_regidity_level = 7
+rtp_press_threshold_enable = 0
+rtp_press_threshold = 0x1f40
+rtp_sensitive_level = 0xf
+rtp_exchange_x_y_flag = 0
+#+END_SRC
+*** 串口的配置信息
+#+BEGIN_SRC sh
+[uart_para7]
+uart_used                = 1
+uart_port                = 7
+uart_type                = 2
+uart_tx                  = port:PI20<3><default><default><default>
+uart_rx                  = port:PI21<3><default><default><default>
+#+END_SRC
+对于串口的配置，A10的串口总共有8个，对应的ttyS0-ttyS7。如果 =uart_used= 打开的数量不够8个，那么具体的对应关系是从ttyS0开始排列的，而不是根据名称对应的。
+
+------
+
+做完了上面的那些事情之后，基本的硬件配置也就做好了，这时候编译出来的镜像，如果硬件跟公板一样的话，那么一部分硬件应该是可以驱动起来的。
+
+对于项目来说，首先，最为重要的是屏幕要点亮，液晶屏的背光是必须要配置正确的。
+
+其次，触摸屏的驱动也要正确，电阻屏的驱动比电容屏要简单，电容屏的配置参数是个大麻烦。
+
+然后就是各种端口，wifi模块，3G上网卡模块，SD卡接口，USB接口等。
+
+有部分是修改配置就可以完成的，关键在于如何进行配置。
+
+还有部分是需要修改驱动信息的。

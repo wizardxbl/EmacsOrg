@@ -1,0 +1,362 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+lang="en" xml:lang="en">
+<head>
+<title>全志工程编译总结</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="2012-09-04 10:19:27 CST"/>
+<meta name="author" content="Wizard.Yang"/>
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  html { font-family: Times, serif; font-size: 12pt; }
+  .title  { text-align: center; }
+  .todo   { color: red; }
+  .done   { color: green; }
+  .tag    { background-color:lightblue; font-weight:normal }
+  .target { }
+  .timestamp { color: grey }
+  .timestamp-kwd { color: CadetBlue }
+  p.verse { margin-left: 3% }
+  pre {
+	border: 1pt solid #AEBDCC;
+	background-color: #F3F5F7;
+	padding: 5pt;
+	font-family: courier, monospace;
+        font-size: 90%;
+        overflow:auto;
+  }
+  table { border-collapse: collapse; }
+  td, th { vertical-align: top; }
+  dt { font-weight: bold; }
+  div.figure { padding: 0.5em; }
+  div.figure p { text-align: center; }
+  .linenr { font-size:smaller }
+  .code-highlighted {background-color:#ffff00;}
+  .org-info-js_info-navigation { border-style:none; }
+  #org-info-js_console-label { font-size:10px; font-weight:bold;
+                               white-space:nowrap; }
+  .org-info-js_search-highlight {background-color:#ffff00; color:#000000;
+                                 font-weight:bold; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*/-->
+</script>
+</head><body>
+<h1 class="title">全志工程编译总结</h1>
+
+<p>build SDK 时需要注意的一些地方
+</p>
+<p>
+A10 SDK 是由两个目录组成的：
+</p><ul>
+<li>
+android4.0
+</li>
+<li>
+lichee
+
+</li>
+</ul>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1 一次正常的编译流程 </a></li>
+<li><a href="#sec-2">2 关于如何移植A10的代码到新的硬件平台上来满足我们的需求 </a>
+<ul>
+<li><a href="#sec-2.1">2.1 如何添加一个lunch项目 </a></li>
+<li><a href="#sec-2.2">2.2 更改加载的驱动 </a></li>
+<li><a href="#sec-2.3">2.3 如何更改硬件上的配置 </a>
+<ul>
+<li><a href="#sec-2.3.1">2.3.1 电容触摸屏的配置信息 </a></li>
+<li><a href="#sec-2.3.2">2.3.2 电阻触摸屏的配置信息 </a></li>
+<li><a href="#sec-2.3.3">2.3.3 串口的配置信息 </a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1">1 一次正常的编译流程 </h2>
+<div id="text-1">
+
+
+<p>
+首先，android4.0和lichee目录是放在同一级目录下面的。
+</p>
+<p>
+然后，首先编译lichee目录中的内容。
+</p>
+
+
+<pre class="src src-sh">
+<span style="color: #98fb98;">cd</span> lichee
+./build.sh -p sun4i_crane -k 3.0
+<span style="color: #98fb98;">cd</span> ..
+</pre>
+
+
+
+<p>
+执行完这里，能够编译完成u-boot和linux kernel
+</p>
+<p>
+其次编译android4.0目录中的内容。
+</p>
+
+
+<pre class="src src-sh">
+<span style="color: #98fb98;">cd</span> android4.0
+<span style="color: #98fb98;">source</span> build/envsetup.sh
+lunch 
+extract-bsp
+make
+pack
+</pre>
+
+
+
+<p>
+执行完make之后，能够编译完成android的img，pack命令是将u-boot,kernel,android打包在一起，并且，这其中把配置文件也都打包进去了。
+</p>
+<p>
+至此，一个正常的编译流程就执行完了。最终生成了xxx.img的镜像，可以用全志提供的烧录工具通过USB烧写到板子上面。
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-2">
+<h2 id="sec-2">2 关于如何移植A10的代码到新的硬件平台上来满足我们的需求 </h2>
+<div id="text-2">
+
+
+<p>
+全志放出的代码是包含公板配置信息的，海克莱特的代码里面也包含了它们自己的一些项目配置。
+</p>
+<p>
+现在我们要在其中加入我们自己项目的配置信息。
+</p>
+<p>
+那么我们要在android4.0目录下和lichee下面分别进行改动。
+</p>
+
+</div>
+
+<div id="outline-container-2.1" class="outline-3">
+<h3 id="sec-2.1">2.1 如何添加一个lunch项目 </h3>
+<div id="text-2.1">
+
+
+<p>
+首先找到路径android4.0/device/softwinner
+</p>
+<p>
+然后在里面建立一个新的目录，目录的名字就是我们想要建立的lunch的名字，一般我们可以直接把公板的目录或者是相似项目的目录拷贝过来直接改名字。 
+</p>
+<p>
+公板的名字是crane-evb,我们建立的目录叫做crane-a10。
+</p>
+<p>
+然后，把目录里面所有文件里面的crane-evb都改成crane-a10。
+</p>
+<p>
+可以先用grep "xxx" ./ -nsr 搜一下，然后把搜到的结果都改掉。
+</p>
+<p>
+做完这些动作之后，当你再次lunch的时候，就会看到目录里面多了crane-a10的条目。
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-2.2" class="outline-3">
+<h3 id="sec-2.2">2.2 更改加载的驱动 </h3>
+<div id="text-2.2">
+
+
+<p>
+主要修改的文件是android4.0/device/softwinner/crane-a10/init.sun4i.rc
+</p>
+<p>
+在里面注释掉不需要的驱动，更改一些驱动，比如电阻触摸屏和电容触摸屏之间的切换。
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-2.3" class="outline-3">
+<h3 id="sec-2.3">2.3 如何更改硬件上的配置 </h3>
+<div id="text-2.3">
+
+
+<p>
+新的代码里面采用了一种很灵活的可配置方法，采用了GPIO管脚的功能的配置文件。
+</p>
+<p>
+这个文件在lichee/tools/pack/chips/sun4i/configs/crane/下面，我们新建的a10目录下面。
+</p>
+<p>
+当然了crane/a10与crane-a10也是对应的。
+</p>
+<p>
+这个文件下面有两个配置文件， <code>sys_config1.fex</code> 和 <code>sys_config.fex</code> 。
+</p>
+<p>
+通常我们更改的更多的是 <code>sys_config1.fex</code> 文。
+</p>
+<p>
+对于 <code>sys_config.fex</code> 文件我们更关心的是分区信息。
+</p>
+<p>
+而对其他的功能则都是在 <code>sys_config1.fex</code> 中。
+</p>
+<p>
+下面将具体的描述一下一些常见的配置情况。
+</p>
+
+</div>
+
+<div id="outline-container-2.3.1" class="outline-4">
+<h4 id="sec-2.3.1">2.3.1 电容触摸屏的配置信息 </h4>
+<div id="text-2.3.1">
+
+
+
+
+<pre class="src src-sh">
+[ctp_para]
+ctp_used                 =1
+ctp_name                 = <span style="color: #8fbc8f; font-style: italic;">"Goodix-TS"</span>
+ctp_twi_id               = 2
+ctp_twi_addr             =0x5d
+ctp_screen_max_x         = 800
+ctp_screen_max_y         = 480
+ctp_revert_x_flag        = 0
+ctp_revert_y_flag        = 0
+ctp_exchange_x_y_flag    = 1
+
+ctp_int_port             = port:PH21&lt;6&gt;&lt;default&gt;
+ctp_wakeup               = port:PB13&lt;1&gt;&lt;default&gt;&lt;default&gt;&lt;1&gt;
+ctp_reset                = port:PB13&lt;1&gt;&lt;default&gt;&lt;default&gt;&lt;1&gt;
+ctp_io_port              = port:PH21&lt;0&gt;&lt;default&gt;
+</pre>
+
+
+
+<p>
+上面这段配置信息，配置了使用电容触摸屏以及对应的属性和GPIO管脚。
+</p>
+<p>
+对这段代码的解析工作是在linux下input/touchscreen里面对应的驱动里面调用的。
+</p>
+<p>
+新的linux kenel中有专门的一个文件来完成解析这个文件的工作。
+</p>
+<p>
+驱动程序里面将根据不同字段的属性给对应的变量赋值，从而达到灵活配置的目的。
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-2.3.2" class="outline-4">
+<h4 id="sec-2.3.2">2.3.2 电阻触摸屏的配置信息 </h4>
+<div id="text-2.3.2">
+
+
+
+
+<pre class="src src-sh">
+[rtp_para]
+rtp_used      =0
+rtp_screen_size =7
+rtp_regidity_level = 7
+rtp_press_threshold_enable = 0
+rtp_press_threshold = 0x1f40
+rtp_sensitive_level = 0xf
+rtp_exchange_x_y_flag = 0
+</pre>
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2.3.3" class="outline-4">
+<h4 id="sec-2.3.3">2.3.3 串口的配置信息 </h4>
+<div id="text-2.3.3">
+
+
+
+
+<pre class="src src-sh">
+[uart_para7]
+uart_used                = 1
+uart_port                = 7
+uart_type                = 2
+uart_tx                  = port:PI20&lt;3&gt;&lt;default&gt;&lt;default&gt;&lt;default&gt;
+uart_rx                  = port:PI21&lt;3&gt;&lt;default&gt;&lt;default&gt;&lt;default&gt;
+</pre>
+
+
+
+<p>
+对于串口的配置，A10的串口总共有8个，对应的ttyS0-ttyS7。如果 <code>uart_used</code> 打开的数量不够8个，那么具体的对应关系是从ttyS0开始排列的，而不是根据名称对应的。
+</p>
+
+<hr/>
+
+<p>
+做完了上面的那些事情之后，基本的硬件配置也就做好了，这时候编译出来的镜像，如果硬件跟公板一样的话，那么一部分硬件应该是可以驱动起来的。
+</p>
+<p>
+对于项目来说，首先，最为重要的是屏幕要点亮，液晶屏的背光是必须要配置正确的。
+</p>
+<p>
+其次，触摸屏的驱动也要正确，电阻屏的驱动比电容屏要简单，电容屏的配置参数是个大麻烦。
+</p>
+<p>
+然后就是各种端口，wifi模块，3G上网卡模块，SD卡接口，USB接口等。
+</p>
+<p>
+有部分是修改配置就可以完成的，关键在于如何进行配置。
+</p>
+<p>
+还有部分是需要修改驱动信息的。
+</p></div>
+</div>
+</div>
+</div>
+<div id="postamble"><p class="author"> Author: Wizard.Yang
+<a href="mailto:xblandy@gmail.com">&lt;xblandy@gmail.com&gt;</a>
+</p>
+<p class="date"> Date: 2012-09-04 10:19:27 CST</p>
+</div></body>
+</html>

@@ -1,0 +1,678 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+lang="en" xml:lang="en">
+<head>
+<title>串口驱动程序分析</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="2012-09-04 09:01:39 CST"/>
+<meta name="author" content="Wizard.Yang"/>
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  html { font-family: Times, serif; font-size: 12pt; }
+  .title  { text-align: center; }
+  .todo   { color: red; }
+  .done   { color: green; }
+  .tag    { background-color:lightblue; font-weight:normal }
+  .target { }
+  .timestamp { color: grey }
+  .timestamp-kwd { color: CadetBlue }
+  p.verse { margin-left: 3% }
+  pre {
+	border: 1pt solid #AEBDCC;
+	background-color: #F3F5F7;
+	padding: 5pt;
+	font-family: courier, monospace;
+        font-size: 90%;
+        overflow:auto;
+  }
+  table { border-collapse: collapse; }
+  td, th { vertical-align: top; }
+  dt { font-weight: bold; }
+  div.figure { padding: 0.5em; }
+  div.figure p { text-align: center; }
+  .linenr { font-size:smaller }
+  .code-highlighted {background-color:#ffff00;}
+  .org-info-js_info-navigation { border-style:none; }
+  #org-info-js_console-label { font-size:10px; font-weight:bold;
+                               white-space:nowrap; }
+  .org-info-js_search-highlight {background-color:#ffff00; color:#000000;
+                                 font-weight:bold; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*/-->
+</script>
+</head><body>
+<h1 class="title">串口驱动程序分析</h1>
+
+<p>全志A10
+</p>
+
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1 8250<sub>sunxi</sub>.c </a>
+<ul>
+<li><a href="#sec-1.1">1.1 include </a></li>
+<li><a href="#sec-1.2">1.2 全局变量 </a></li>
+<li><a href="#sec-1.3">1.3 函数 </a>
+<ul>
+<li><a href="#sec-1.3.1">1.3.1 驱动数据 </a></li>
+<li><a href="#sec-1.3.2">1.3.2 驱动入口 </a></li>
+<li><a href="#sec-1.3.3">1.3.3 初始化/注销函数 </a></li>
+<li><a href="#sec-1.3.4">1.3.4 驱动首先执行的函数 </a></li>
+<li><a href="#sec-1.3.5">1.3.5 驱动结构体里其他的函数 </a></li>
+<li><a href="#sec-1.3.6">1.3.6 驱动里其他的函数 </a></li>
+</ul>
+</li>
+<li><a href="#sec-1.4">1.4 8250.h </a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1">1 8250<sub>sunxi</sub>.c </h2>
+<div id="text-1">
+
+
+<p>
+代码位置： <code>linux-3.0/drivers/tty/serial/8250_sunxi.o</code>
+</p>
+
+</div>
+
+<div id="outline-container-1.1" class="outline-3">
+<h3 id="sec-1.1">1.1 include </h3>
+<div id="text-1.1">
+
+
+
+
+<pre class="src src-c">
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;linux/module.h&gt;</span>
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;linux/types.h&gt;</span>
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;linux/tty.h&gt;</span>
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;linux/serial_core.h&gt;</span>
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;linux/errno.h&gt;</span>
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;linux/ioport.h&gt;</span>
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;linux/slab.h&gt;</span>
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;linux/device.h&gt;</span>
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;linux/init.h&gt;</span>
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;asm/io.h&gt;</span>
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;asm/ecard.h&gt;</span>
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;asm/string.h&gt;</span>
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;linux/clk.h&gt;</span>
+
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;mach/sys_config.h&gt;</span>
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;mach/platform.h&gt;</span>
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;mach/irqs.h&gt;</span>
+
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">"8250.h"</span>
+<span style="color: #0000cd;">#if</span> CONFIG_CHIP_ID == 1123
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">MAX_PORTS</span>    8
+<span style="color: #0000cd;">#elif</span> CONFIG_CHIP_ID == 1125
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">MAX_PORTS</span>    4
+<span style="color: #0000cd;">#else</span>
+<span style="color: #0000cd;">#error</span> <span style="color: #8fbc8f; font-style: italic;">"Unknown chip ID for Serial"</span>
+<span style="color: #0000cd;">#endif</span>
+</pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1.2" class="outline-3">
+<h3 id="sec-1.2">1.2 全局变量 </h3>
+<div id="text-1.2">
+
+
+
+
+
+<pre class="src src-c">
+<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">sw_serial</span>[MAX_PORTS];
+
+<span style="color: #0000cd;">#if</span> 0
+<span style="color: #0000cd;">#define</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">UART_MSG</span>(<span style="color: #add8e6; font-weight: bold; font-style: italic;">fmt</span>...)    printk(<span style="color: #8fbc8f; font-style: italic;">"[uart]: "</span>fmt)
+<span style="color: #0000cd;">#else</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">UART_MSG</span>(<span style="color: #add8e6; font-weight: bold; font-style: italic;">fmt</span>...)    <span style="color: #add8e6; font-weight: bold;">do</span>{}<span style="color: #add8e6; font-weight: bold;">while</span>(0)
+<span style="color: #0000cd;">#endif</span>
+<span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">Register base define </span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">UART_BASE</span>        (0x01C28000)
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">UART_BASE_OS</span>     (0x400)
+<span style="color: #0000cd;">#define</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">UARTx_BASE</span>(<span style="color: #add8e6; font-weight: bold; font-style: italic;">x</span>)    (UART_BASE + (x) * UART_BASE_OS)
+<span style="color: #0000cd;">#define</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">RESSIZE</span>(<span style="color: #add8e6; font-weight: bold; font-style: italic;">res</span>)     (((res)-&gt;end - (res)-&gt;start + 1)
+<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">sw_serial_port</span> {
+    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">uart_port</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">port</span>;
+    <span style="color: #9acd32; font-weight: bold;">char</span>             <span style="color: #add8e6; font-weight: bold; font-style: italic;">name</span>[16];
+    <span style="color: #9acd32; font-weight: bold;">int</span>              <span style="color: #add8e6; font-weight: bold; font-style: italic;">port_no</span>;
+    <span style="color: #9acd32; font-weight: bold;">int</span>              <span style="color: #add8e6; font-weight: bold; font-style: italic;">pin_num</span>;
+    <span style="color: #9acd32; font-weight: bold;">u32</span>              <span style="color: #add8e6; font-weight: bold; font-style: italic;">pio_hdle</span>;
+    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">clk</span>       *<span style="color: #add8e6; font-weight: bold; font-style: italic;">clk</span>;
+    <span style="color: #9acd32; font-weight: bold;">u32</span>              <span style="color: #add8e6; font-weight: bold; font-style: italic;">sclk</span>;
+    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">resource</span>  *<span style="color: #add8e6; font-weight: bold; font-style: italic;">mmres</span>;
+    <span style="color: #9acd32; font-weight: bold;">u32</span>              <span style="color: #add8e6; font-weight: bold; font-style: italic;">irq</span>;
+    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">platform_device</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">pdev</span>;
+};
+</pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1.3" class="outline-3">
+<h3 id="sec-1.3">1.3 函数 </h3>
+<div id="text-1.3">
+
+
+
+</div>
+
+<div id="outline-container-1.3.1" class="outline-4">
+<h4 id="sec-1.3.1">1.3.1 驱动数据 </h4>
+<div id="text-1.3.1">
+
+
+
+
+<pre class="src src-c">
+<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">platform_driver</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">sw_serial_driver</span> = {
+    .probe  = sw_serial_probe,
+    .remove = sw_serial_remove,
+        .suspend        = sw_serial_suspend,
+        .resume         = sw_serial_resume,
+    .driver = {
+        .name    = <span style="color: #8fbc8f; font-style: italic;">"sunxi-uart"</span>,
+        .owner    = THIS_MODULE,
+    },
+};
+
+<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">resource</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">sw_uart_res</span>[8][2] = {
+    {<span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">uart0 resource </span><span style="color: #cccccc; font-style: italic;">*/</span>
+        {.start = UARTx_BASE(0),      .end = UARTx_BASE(0) + UART_BASE_OS - 1, .flags = IORESOURCE_MEM}, <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">base</span><span style="color: #cccccc; font-style: italic;">*/</span>
+        {.start = SW_INT_IRQNO_UART0, .end = SW_INT_IRQNO_UART0,           .flags = IORESOURCE_IRQ}, <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">irq </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    },
+    {<span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">uart1 resource </span><span style="color: #cccccc; font-style: italic;">*/</span>
+        {.start = UARTx_BASE(1),      .end = UARTx_BASE(1) + UART_BASE_OS - 1, .flags = IORESOURCE_MEM}, <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">base</span><span style="color: #cccccc; font-style: italic;">*/</span>
+        {.start = SW_INT_IRQNO_UART1, .end = SW_INT_IRQNO_UART1,           .flags = IORESOURCE_IRQ}, <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">irq </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    },
+    {<span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">uart2 resource </span><span style="color: #cccccc; font-style: italic;">*/</span>
+        {.start = UARTx_BASE(2),      .end = UARTx_BASE(2) + UART_BASE_OS - 1, .flags = IORESOURCE_MEM}, <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">base</span><span style="color: #cccccc; font-style: italic;">*/</span>
+        {.start = SW_INT_IRQNO_UART2, .end = SW_INT_IRQNO_UART2,           .flags = IORESOURCE_IRQ}, <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">irq </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    },
+    {<span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">uart3 resource </span><span style="color: #cccccc; font-style: italic;">*/</span>
+        {.start = UARTx_BASE(3),      .end = UARTx_BASE(3) + UART_BASE_OS - 1, .flags = IORESOURCE_MEM}, <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">base</span><span style="color: #cccccc; font-style: italic;">*/</span>
+        {.start = SW_INT_IRQNO_UART3, .end = SW_INT_IRQNO_UART3,           .flags = IORESOURCE_IRQ}, <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">irq </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    },
+    {<span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">uart4 resource </span><span style="color: #cccccc; font-style: italic;">*/</span>
+        {.start = UARTx_BASE(4),      .end = UARTx_BASE(4) + UART_BASE_OS - 1, .flags = IORESOURCE_MEM}, <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">base</span><span style="color: #cccccc; font-style: italic;">*/</span>
+        {.start = SW_INT_IRQNO_UART4, .end = SW_INT_IRQNO_UART4,           .flags = IORESOURCE_IRQ}, <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">irq </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    },
+    {<span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">uart5 resource </span><span style="color: #cccccc; font-style: italic;">*/</span>
+        {.start = UARTx_BASE(5),      .end = UARTx_BASE(5) + UART_BASE_OS - 1, .flags = IORESOURCE_MEM}, <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">base</span><span style="color: #cccccc; font-style: italic;">*/</span>
+        {.start = SW_INT_IRQNO_UART5, .end = SW_INT_IRQNO_UART5,           .flags = IORESOURCE_IRQ}, <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">irq </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    },
+    {<span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">uart6 resource </span><span style="color: #cccccc; font-style: italic;">*/</span>
+        {.start = UARTx_BASE(6),      .end = UARTx_BASE(6) + UART_BASE_OS - 1, .flags = IORESOURCE_MEM}, <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">base</span><span style="color: #cccccc; font-style: italic;">*/</span>
+        {.start = SW_INT_IRQNO_UART6, .end = SW_INT_IRQNO_UART6,           .flags = IORESOURCE_IRQ}, <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">irq </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    },
+    {<span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">uart7 resource </span><span style="color: #cccccc; font-style: italic;">*/</span>
+        {.start = UARTx_BASE(7),      .end = UARTx_BASE(7) + UART_BASE_OS - 1, .flags = IORESOURCE_MEM}, <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">base</span><span style="color: #cccccc; font-style: italic;">*/</span>
+        {.start = SW_INT_IRQNO_UART7, .end = SW_INT_IRQNO_UART7,           .flags = IORESOURCE_IRQ}, <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">irq </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    },
+};
+
+<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">platform_device</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">sw_uart_dev</span>[] = {
+    [0] = {.name = <span style="color: #8fbc8f; font-style: italic;">"sunxi-uart"</span>, .id = 0, .num_resources = ARRAY_SIZE(sw_uart_res[0]), .resource = &amp;sw_uart_res[0][0], .dev = {}},
+    [1] = {.name = <span style="color: #8fbc8f; font-style: italic;">"sunxi-uart"</span>, .id = 1, .num_resources = ARRAY_SIZE(sw_uart_res[1]), .resource = &amp;sw_uart_res[1][0], .dev = {}},
+    [2] = {.name = <span style="color: #8fbc8f; font-style: italic;">"sunxi-uart"</span>, .id = 2, .num_resources = ARRAY_SIZE(sw_uart_res[2]), .resource = &amp;sw_uart_res[2][0], .dev = {}},
+    [3] = {.name = <span style="color: #8fbc8f; font-style: italic;">"sunxi-uart"</span>, .id = 3, .num_resources = ARRAY_SIZE(sw_uart_res[3]), .resource = &amp;sw_uart_res[3][0], .dev = {}},
+    [4] = {.name = <span style="color: #8fbc8f; font-style: italic;">"sunxi-uart"</span>, .id = 4, .num_resources = ARRAY_SIZE(sw_uart_res[4]), .resource = &amp;sw_uart_res[4][0], .dev = {}},
+    [5] = {.name = <span style="color: #8fbc8f; font-style: italic;">"sunxi-uart"</span>, .id = 5, .num_resources = ARRAY_SIZE(sw_uart_res[5]), .resource = &amp;sw_uart_res[5][0], .dev = {}},
+    [6] = {.name = <span style="color: #8fbc8f; font-style: italic;">"sunxi-uart"</span>, .id = 6, .num_resources = ARRAY_SIZE(sw_uart_res[6]), .resource = &amp;sw_uart_res[6][0], .dev = {}},
+    [7] = {.name = <span style="color: #8fbc8f; font-style: italic;">"sunxi-uart"</span>, .id = 7, .num_resources = ARRAY_SIZE(sw_uart_res[7]), .resource = &amp;sw_uart_res[7][0], .dev = {}},
+};
+
+</pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1.3.2" class="outline-4">
+<h4 id="sec-1.3.2">1.3.2 驱动入口 </h4>
+<div id="text-1.3.2">
+
+
+
+
+
+<pre class="src src-c">
+MODULE_AUTHOR(Aaron.myeh&lt;<a href="mailto:leafy.myeh&#64;allwinnerthech.com">leafy.myeh&#64;allwinnerthech.com</a>&gt;<span style="color: #ffa07a; font-weight: bold;">"</span><span style="color: #8fbc8f; font-style: italic;">);
+MODULE_DESCRIPTION("</span>SUNXI 8250-compatible serival port expansion card driver<span style="color: #ffa07a; font-weight: bold;">"</span><span style="color: #8fbc8f; font-style: italic;">);
+MODULE_LICENSE("</span>GPL<span style="color: #ffa07a; font-weight: bold;">"</span><span style="color: #8fbc8f; font-style: italic;">);
+
+module_init(sw_serial_init);
+module_exit(sw_serial_exit);
+</span></pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1.3.3" class="outline-4">
+<h4 id="sec-1.3.3">1.3.3 初始化/注销函数 </h4>
+<div id="text-1.3.3">
+
+
+
+
+
+<pre class="src src-c">
+
+<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">uart_used</span>;
+<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">__init</span> sw_serial_init(<span style="color: #9acd32; font-weight: bold;">void</span>)
+{
+    <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">ret</span>;
+    <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">i</span>;
+    <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">used</span> = 0;
+    <span style="color: #9acd32; font-weight: bold;">char</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">uart_para</span>[16];
+
+    memset(sw_serial, 0, <span style="color: #add8e6; font-weight: bold;">sizeof</span>(sw_serial));
+    uart_used = 0;
+    <span style="color: #add8e6; font-weight: bold;">for</span> (i = 0, i &lt; MAX_PORTS; i++, used = 0) {
+        sprintf(uart_para, <span style="color: #8fbc8f; font-style: italic;">"uart_para%d"</span>, i);
+        ret = script_parser_fetch(uart_para, <span style="color: #8fbc8f; font-style: italic;">"uart_used"</span>, &amp;used, <span style="color: #add8e6; font-weight: bold;">sizeof</span>(<span style="color: #9acd32; font-weight: bold;">int</span>));
+        <span style="color: #add8e6; font-weight: bold;">if</span> (ret) 
+            UART_MSG(<span style="color: #8fbc8f; font-style: italic;">"failed to get uart%d's used information\n"</span>, i);
+        <span style="color: #add8e6; font-weight: bold;">if</span> (used) {
+            uart_used |= 1&lt;&lt;i;
+            platform_device_register(&amp;sw_uart_dev[i]);
+        }
+    }
+
+    <span style="color: #add8e6; font-weight: bold;">if</span> (uart_used) {
+        UART_MSG(<span style="color: #8fbc8f; font-style: italic;">"used uart info.: 0x%02x\n"</span>, uart_used);
+        ret = platform_driver_register(&amp;sw_serial_driver);
+        <span style="color: #add8e6; font-weight: bold;">return</span> ret;
+    }
+    <span style="color: #add8e6; font-weight: bold;">return</span> 0;
+}
+
+<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">__exit</span> sw_serial_exit(<span style="color: #9acd32; font-weight: bold;">void</span>)
+{
+    <span style="color: #add8e6; font-weight: bold;">if</span> (uart_used)
+        platform_driver_unregister(&amp;sw_serial_driver);
+}
+
+</pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1.3.4" class="outline-4">
+<h4 id="sec-1.3.4">1.3.4 驱动首先执行的函数 </h4>
+<div id="text-1.3.4">
+
+
+
+
+
+<pre class="src src-c">
+<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">__devinit</span> sw_serial_probe(<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">platform_device</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">dev</span>)
+{
+    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">sw_serial_port</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">sport</span>;
+    <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">ret</span>;
+    sport = kzalloc(<span style="color: #add8e6; font-weight: bold;">sizeof</span>(<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">sw_serial_port</span>), GFP_KERNEL);
+    <span style="color: #add8e6; font-weight: bold;">if</span>(!sport)
+        <span style="color: #add8e6; font-weight: bold;">return</span> -ENOMEM;
+    sport-&gt;prot_no = dev-&gt;id;
+    sport-&gt;pdev    = dev;
+
+    ret = sw_serial_get_config(sport, dev-&gt;id);
+    <span style="color: #add8e6; font-weight: bold;">if</span> (ret) {
+        printk(KERN_ERR <span style="color: #8fbc8f; font-style: italic;">"Failed to get config information\n"</span>);
+        <span style="color: #add8e6; font-weight: bold;">goto</span> <span style="color: #add8e6;">free_dev</span>;
+    }
+
+    ret = sw_serial_get_resource(sport);
+    <span style="color: #add8e6; font-weight: bold;">if</span> (ret) {
+        printk(KERN_ERR <span style="color: #8fbc8f; font-style: italic;">"Failed to get resource\n"</span>);
+        <span style="color: #add8e6; font-weight: bold;">goto</span> <span style="color: #add8e6;">free_dev</span>;
+    }
+    platform_set_drvdata(dev, sport);
+
+    sport-&gt;port.irq = sport-&gt;irq;
+    sport-&gt;port.fifosize = 64;
+    sport-&gt;port.regshift = 2;
+    sport-&gt;port.iotype = UPIO_DWAPB32;
+    sport-&gt;port.flags  = UPF_IOREMAP | UPF_BOOT_AUTOCONF;
+    sport-&gt;port.uartclk = sport-&gt;sclk;
+    sport-&gt;port.pm = sw_serial_pm;
+    sport-&gt;port.dev = &amp;dev-&gt;dev;
+    sport-&gt;port.mapbase = sport-&gt;mmres-&gt;start;
+
+    sw_serial[sport-&gt;port_no] = serial8250_register_port(&amp;port-&gt;port);
+    UART_MSG(<span style="color: #8fbc8f; font-style: italic;">"serial probe %d, membase %p irq %d mapbase 0x%08x\n"</span>,
+              dev-&gt;id, sport-&gt;port.membase, sport-&gt;port.irq, sport-&gt;port.mapbase);
+    <span style="color: #add8e6; font-weight: bold;">return</span> 0;
+<span style="color: #add8e6;">free_dev</span>:
+    kfree(sport);
+    sport = <span style="color: #add8e6;">NULL</span>;
+    <span style="color: #add8e6; font-weight: bold;">return</span> ret;
+}
+</pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1.3.5" class="outline-4">
+<h4 id="sec-1.3.5">1.3.5 驱动结构体里其他的函数 </h4>
+<div id="text-1.3.5">
+
+
+
+
+
+<pre class="src src-c">
+<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">__devexit</span> sw_serial_remove(<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">platform_device</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">dev</span>)
+{
+    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">sw_serial_port</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">sport</span> = platform_get_drvdata(dev);
+    UART_MSG(<span style="color: #8fbc8f; font-style: italic;">"serial remove\n"</span>);
+    serial8250_unregister_port(sw_serial[sport-&gt;port_no]);
+    sw_serial[sport-&gt;port_no] = 0;
+    sw_serial_put_resource(sport);
+
+    kfree(sport);
+    sport = <span style="color: #add8e6;">NULL</span>;
+    <span style="color: #add8e6; font-weight: bold;">return</span> 0;
+}
+
+<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">sw_serial_suspend</span>(<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">platform_device</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">dev</span>, <span style="color: #9acd32; font-weight: bold;">pm_message_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">state</span>) 
+{
+    <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">i</span>;
+    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">uart_port</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">port</span>;
+    UART_MSG(<span style="color: #8fbc8f; font-style: italic;">"sw_serial_suspend uart suspend\n"</span>);
+    UART_MSG(<span style="color: #8fbc8f; font-style: italic;">"&amp;dev-&gt;dev is 0x%x\n"</span>, &amp;dev-&gt;dev);
+
+    <span style="color: #add8e6; font-weight: bold;">for</span> (i=0 ; i&lt;MAX_PORTS; i++) {
+        port = (<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">uart_port</span> *)get_ports(i);
+        <span style="color: #add8e6; font-weight: bold;">if</span> (port-&gt;type != PORT_UNKNOWN) {
+            UART_MSG(<span style="color: #8fbc8f; font-style: italic;">"type is 0x%x PORT_UNKNOWN is 0x%x\n"</span>, port-&gt;type, PORT_UNKNOWN);
+            UART_MSG(<span style="color: #8fbc8f; font-style: italic;">"port.dev is 0x%x &amp;dev-&gt;dev is 0x%x\n"</span>, port-&gt;dev, &amp;dev-&gt;dev);
+        }
+        <span style="color: #add8e6; font-weight: bold;">if</span>((port-&gt;type != PORT_UNKNOWN)&amp;&amp;(port-&gt;dev == &amp;dev-&gt;dev))
+            serial8250_suspend_port(i);
+    }
+    <span style="color: #add8e6; font-weight: bold;">return</span> 0;
+}
+
+<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">sw_serial_resume</span>(<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">platform_device</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">dev</span>)
+{
+    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">uart_port</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">port</span>;
+    <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">i</span>;
+    UART_MSG(<span style="color: #8fbc8f; font-style: italic;">"sw_serial_resume SUPER_STANDBY resume\n"</span>);
+    UART_MSG(<span style="color: #8fbc8f; font-style: italic;">"&amp;dev-&gt;dev is 0x%x\n"</span>, &amp;dev-&gt;dev);
+
+    <span style="color: #add8e6; font-weight: bold;">for</span>(i = 0; i &lt; MAX_PORTS; i++) {
+        port = (<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">uart_port</span> *)get_ports(i);
+        <span style="color: #add8e6; font-weight: bold;">if</span> (port-&gt;type != PORT_UNKNOWN) {
+            UART_MSG(<span style="color: #8fbc8f; font-style: italic;">"type is 0x%x PORT_UNKNOWN is 0x%x\n"</span>, port-&gt;type, PORT_UNKNOWN);
+            UART_MSG(<span style="color: #8fbc8f; font-style: italic;">"port.dev is 0x%x $dev-&gt;dev is 0x%x\n"</span>,port-&gt;dev,&amp;dev-&gt;dev);
+        }
+        <span style="color: #add8e6; font-weight: bold;">if</span>((port-&gt;type != PORT_UNKNOWN) &amp;&amp; (port-&gt;dev == &amp;dev-&gt;dev))
+            serial8250_resume_port(i);
+    }
+    <span style="color: #add8e6; font-weight: bold;">return</span> 0;
+}
+</pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1.3.6" class="outline-4">
+<h4 id="sec-1.3.6">1.3.6 驱动里其他的函数 </h4>
+<div id="text-1.3.6">
+
+
+
+
+
+<pre class="src src-c">
+
+<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">sw_serial_get_resource</span>(<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">sw_serial_port</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">sport</span>)
+{
+    <span style="color: #9acd32; font-weight: bold;">char</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">name</span>[16];
+    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">clk</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">pclk</span> = <span style="color: #add8e6;">NULL</span>;
+    <span style="color: #9acd32; font-weight: bold;">char</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">uart_param</span>[16];
+    <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">ret</span>;
+
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">get register base</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    sport-&gt;mmres = platform_get_resource(sport-&gt;pdev, IORESOURCE_MEM, 0);
+    <span style="color: #add8e6; font-weight: bold;">if</span> (!sport-&gt;mmres) {
+        ret = -ENODEV;
+        <span style="color: #add8e6; font-weight: bold;">goto</span> <span style="color: #add8e6;">err_out</span>;
+    }
+
+    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">get clock</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    pclk = clk_get(&amp;sport-&gt;pdev-&gt;dev, <span style="color: #8fbc8f; font-style: italic;">"apb1"</span>);
+    <span style="color: #add8e6; font-weight: bold;">if</span> (IS_ERR(pclk)) {
+        ret = PTR_ERR(pclk);
+        goto_iounmap;
+    }
+
+    sport-&gt;sclk = clk_get_rate(pclk);
+    clk_put(pclk);
+
+    sprintf(name, <span style="color: #8fbc8f; font-style: italic;">"apb_uart%d"</span>, sport-&gt;port_no);
+    sport-&gt;clk = clk_get(&amp;sport-&gt;pdev-&gt;dev, name);
+    <span style="color: #add8e6; font-weight: bold;">if</span> (IS_ERR(sport-&gt;clk)) {
+        ret = PTR_ERR(sport-&gt;clk);
+        <span style="color: #add8e6; font-weight: bold;">goto</span> <span style="color: #add8e6;">iounmap</span>;
+    }
+    clk_enable(sport-&gt;clk);
+
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">get irq </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    sport-&gt;irq = platform_get_irq(sport-&gt;pdev, 0);
+    <span style="color: #add8e6; font-weight: bold;">if</span> (sport-&gt;irq == 0) {
+        ret = -EINVAL;
+        <span style="color: #add8e6; font-weight: bold;">goto</span> <span style="color: #add8e6;">free_pclk</span>;
+    }
+
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">get gpio resource </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    sprintf(uart_para, <span style="color: #8fbc8f; font-style: italic;">"uart_para%d"</span>, sport-&gt;port_no);
+    sport-&gt;pio_hdle = gpio_request_ex(uart_para, <span style="color: #add8e6;">NULL</span>);
+    <span style="color: #add8e6; font-weight: bold;">if</span> (!sport-&gt;pio_hdle) {
+        ret = -EINVAL;
+        <span style="color: #add8e6; font-weight: bold;">goto</span> <span style="color: #add8e6;">free_pclk</span>;
+    }
+    <span style="color: #add8e6; font-weight: bold;">return</span> 0;
+<span style="color: #add8e6;">free_pclk</span>:
+    clk_put(sport-&gt;clk);
+<span style="color: #add8e6;">iounmap</span>:
+<span style="color: #add8e6;">err_out</span>:
+    <span style="color: #add8e6; font-weight: bold;">return</span> ret;
+}
+
+<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">sw_serial_put_resource</span>(<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">sw_serial_port</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">sport</span>)
+{
+    clk_disable(sport-&gt;clk);
+    clk_put(sport-&gt;clk);
+    gpio_release(sport-&gt;pio_hdle, 1);
+    <span style="color: #add8e6; font-weight: bold;">return</span> 0;
+}
+
+<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">sw_serial_get_config</span>(<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">sw_serial_port</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">sport</span>, <span style="color: #9acd32; font-weight: bold;">u32</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">uart_id</span>)
+{
+    <span style="color: #9acd32; font-weight: bold;">char</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">uart_para</span>[16] = {0};
+    <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">ret</span>;
+
+    sprintf(uart_para, <span style="color: #8fbc8f; font-style: italic;">"uart_para%d"</span>, uart_id);
+    ret = script_parser_fetch(uart_para, <span style="color: #8fbc8f; font-style: italic;">"uart_port"</span>, &amp;sport-&gt;port_no, <span style="color: #add8e6; font-weight: bold;">sizeof</span>(<span style="color: #9acd32; font-weight: bold;">int</span>));
+    <span style="color: #add8e6; font-weight: bold;">if</span> (ret)
+        <span style="color: #add8e6; font-weight: bold;">return</span> -1;
+    <span style="color: #add8e6; font-weight: bold;">if</span> (sport-&gt;port_no != uart_id)
+        <span style="color: #add8e6; font-weight: bold;">return</span> -1;
+    ret = script_parser_fetch(uart_para, <span style="color: #8fbc8f; font-style: italic;">"uart_type"</span>, &amp;sport-&gt;pin_num, <span style="color: #add8e6; font-weight: bold;">sizeof</span>(<span style="color: #9acd32; font-weight: bold;">int</span>));
+    <span style="color: #add8e6; font-weight: bold;">if</span> (ret)
+        <span style="color: #add8e6; font-weight: bold;">return</span> -1;
+
+    <span style="color: #add8e6; font-weight: bold;">return</span> 0;
+}
+
+<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">sw_serial_pm</span>(<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">uart_port</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">port</span>, <span style="color: #9acd32; font-weight: bold;">unsigned</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">state</span>, <span style="color: #9acd32; font-weight: bold;">unsigned</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">oldstate</span>)
+{
+    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">sw_serial_port</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">up</span> = (<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">sw_serial_port</span> *)port;
+    <span style="color: #add8e6; font-weight: bold;">if</span> (!state)
+        clk_enable(up-&gt;clk);
+    <span style="color: #add8e6; font-weight: bold;">else</span>
+        clk_disable(up-&gt;clk);
+}
+
+</pre>
+
+
+
+
+<p>
+经过我们查看，8250<sub>sunix是依赖于8250</sub>.c/h
+</p>
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-1.4" class="outline-3">
+<h3 id="sec-1.4">1.4 8250.h </h3>
+<div id="text-1.4">
+
+<p>基于drivers/char/serial.c
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #0000cd;">#include</span> <span style="color: #8fbc8f; font-style: italic;">&lt;linux/serial_8250.h&gt;</span>
+<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">old_serial_port</span> {
+    <span style="color: #9acd32; font-weight: bold;">unsigned</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">uart</span>;
+    <span style="color: #9acd32; font-weight: bold;">unsigned</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">baud_base</span>;
+    <span style="color: #9acd32; font-weight: bold;">unsigned</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">port</span>;
+    <span style="color: #9acd32; font-weight: bold;">unsigned</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">irq</span>;
+    <span style="color: #9acd32; font-weight: bold;">unsigned</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">flags</span>;
+    <span style="color: #9acd32; font-weight: bold;">unsigned</span> <span style="color: #9acd32; font-weight: bold;">char</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">hub6</span>;
+    <span style="color: #9acd32; font-weight: bold;">unsigned</span> <span style="color: #9acd32; font-weight: bold;">char</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">io_type</span>;
+    <span style="color: #9acd32; font-weight: bold;">unsigned</span> <span style="color: #9acd32; font-weight: bold;">char</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">iomem_base</span>;
+    <span style="color: #9acd32; font-weight: bold;">unsigned</span> <span style="color: #9acd32; font-weight: bold;">short</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">iomem_reg_shift</span>;
+    <span style="color: #9acd32; font-weight: bold;">unsigned</span> <span style="color: #9acd32; font-weight: bold;">long</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">irqflags</span>;
+};
+<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">This replaces serial_uart_config in include/linux/serial.h</span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">serial8250_config</span> {
+    <span style="color: #add8e6; font-weight: bold;">const</span> <span style="color: #9acd32; font-weight: bold;">char</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">name</span>;
+    <span style="color: #9acd32; font-weight: bold;">unsigned</span> <span style="color: #9acd32; font-weight: bold;">short</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">fifo_size</span>;
+    <span style="color: #9acd32; font-weight: bold;">unsigned</span> <span style="color: #9acd32; font-weight: bold;">short</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">tx_loadsz</span>;
+    <span style="color: #9acd32; font-weight: bold;">unsigned</span> <span style="color: #9acd32; font-weight: bold;">char</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">fcr</span>;
+    <span style="color: #9acd32; font-weight: bold;">unsigned</span> <span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">flags</span>;
+};
+
+
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">UART_CAP_FIFO</span>   (1 &lt;&lt; 8)        <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">UART has FIFO </span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">UART_CAP_EFR</span>    (1 &lt;&lt; 9)        <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">UART has EFR </span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">UART_CAP_SLEEP</span>  (1 &lt;&lt; 10)       <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">UART has IER sleep </span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">UART_CAP_AFE</span>    (1 &lt;&lt; 11)       <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">MCR-based hw flow control </span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">UART_CAP_UUE</span>    (1 &lt;&lt; 12)       <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">UART needs IER bit 6 set (Xscale) </span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">UART_CAP_RTOIE</span>  (1 &lt;&lt; 13)       <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">UART needs IER bit 4 set (Xscale, Tegra) </span><span style="color: #cccccc; font-style: italic;">*/</span>
+
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">UART_BUG_QUOT</span>   (1 &lt;&lt; 0)        <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">UART has buggy quot LSB </span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">UART_BUG_TXEN</span>   (1 &lt;&lt; 1)        <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">UART has buggy TX IIR status </span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">UART_BUG_NOMSR</span>  (1 &lt;&lt; 2)        <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">UART has buggy MSR status bits (Au1x00) </span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">UART_BUG_THRE</span>   (1 &lt;&lt; 3)        <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">UART has buggy THRE reassertion </span><span style="color: #cccccc; font-style: italic;">*/</span>
+
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">PROBE_RSA</span>       (1 &lt;&lt; 0)
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">PROBE_ANY</span>       (~0)
+
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">HIGH_BITS_OFFSET</span> ((<span style="color: #add8e6; font-weight: bold;">sizeof</span>(<span style="color: #9acd32; font-weight: bold;">long</span>)-<span style="color: #add8e6; font-weight: bold;">sizeof</span>(<span style="color: #9acd32; font-weight: bold;">int</span>))*8)
+
+<span style="color: #0000cd;">#ifdef</span> CONFIG_SERIAL_8250_SHARE_IRQ
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">SERIAL8250_SHARE_IRQS</span> 1
+<span style="color: #0000cd;">#else</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">SERIAL8250_SHARE_IRQS</span> 0
+<span style="color: #0000cd;">#endif</span>
+
+<span style="color: #0000cd;">#if</span> <span style="color: #0000cd;">defined</span>(__alpha__) &amp;&amp; !<span style="color: #0000cd;">defined</span>(CONFIG_PCI)
+<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">
+ * Digital did something really horribly wrong with the OUT1 and OUT2
+ * lines on at least some ALPHA's.  The failure mode is that if either
+ * is cleared, the machine locks up with endless interrupts.
+ </span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">ALPHA_KLUDGE_MCR</span>  (UART_MCR_OUT2 | UART_MCR_OUT1)
+<span style="color: #0000cd;">#elif</span> <span style="color: #0000cd;">defined</span>(CONFIG_SBC8560)
+<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">
+ * WindRiver did something similarly broken on their SBC8560 board. The
+ * UART tristates its IRQ output while OUT2 is clear, but they pulled
+ * the interrupt line _up_ instead of down, so if we register the IRQ
+ * while the UART is in that state, we die in an IRQ storm. </span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">ALPHA_KLUDGE_MCR</span> (UART_MCR_OUT2)
+<span style="color: #0000cd;">#else</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">ALPHA_KLUDGE_MCR</span> 0
+<span style="color: #0000cd;">#endif</span>
+<span style="color: #add8e6; font-weight: bold;">extern</span> <span style="color: #9acd32; font-weight: bold;">int</span> * <span style="color: #ffff00; font-weight: bold; font-style: italic;">get_ports</span>(<span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">number</span>);
+</pre>
+
+
+
+</div>
+</div>
+</div>
+<div id="postamble"><p class="author"> Author: Wizard.Yang
+<a href="mailto:xblandy@gmail.com">&lt;xblandy@gmail.com&gt;</a>
+</p>
+<p class="date"> Date: 2012-09-04 09:01:39 CST</p>
+</div></body>
+</html>
