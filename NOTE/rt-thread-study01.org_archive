@@ -1,0 +1,344 @@
+#    -*- mode: org -*-
+
+
+Archived entries from file /home/yangyang/git/EmacsOrg/NOTE/rt-thread-study01.org
+
+* DONE 开始研究代码的目录结构
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2012-09-04 二 15:04
+  :ARCHIVE_FILE: ~/git/EmacsOrg/NOTE/rt-thread-study01.org
+  :ARCHIVE_CATEGORY: rt-thread-study01
+  :END:
+
+首先要看的是Keil的Project窗口，里面列出了为划分层次而人为建立的目录结构：
+
+| RTThread           |
+|--------------------|
+| =Applications=     |
+| =Drivers=          |
+| =STM32_StdPeriph=  |
+| =ui=               |
+| =Kernel=           |
+| =CORTEX-M4=        |
+| =Filesystem=       |
+| =DeviceDrivers=    |
+| =jpeg=             |
+| =finsh=            |
+| =Components=       |
+| =LwIP=             |
+| =pthreads=         |
+| =RTGUI=            |
+|                    |
+
+打开各个折叠的目录看了一下,主要关注两个目录: =Application= 和 =STM32_StdPeriph=
+
+| =Application=   |
+|-----------------|
+| =application.c= |
+| =libc_export.c= |
+| =setup.c=       |
+| =startup.c=     |
+|                 |
+#+TBLFM: $1=application.c=
+
+在startup.c中有着C语言的入口函数main()
+
+| =STM32_StdPeriph=     |
+|-----------------------|
+| =system_stm32f4xx.c=  |
+| =startup_stm32f4xx.s= |
+|                       |
+
+=startup_stm32f4x.s= 文件里面是汇编代码,是最开始的程序。
+
+下面看一下汇编里面的关键代码
+
+#+BEGIN_SRC asm
+; Reset handler
+Reset_Handler PROC
+              EXPORT Reset_Handler [WEAK]
+      IMPORT  SystemInit
+      IMPORT  __main
+           
+              LDR    R0, =SystemInit
+              BLX    R0
+              LDR    R0, =__main
+              BX     R0
+              ENDP
+#+END_SRC
+
+系统在复位之后，调用了两个函数。
+
+#+BEGIN_SRC c
+/**
+  * @brief  Setup the microcontroller system
+  *         Initialize the Embedded Flash Interface, the PLL and update the 
+  *         SystemFrequency variable.
+  *         设置MCU，初始化嵌入式Flash接口，PLL和升级系统时钟频率变量
+  * @param  None
+  * @retval None
+  */
+
+void SystemInit(void)
+{
+  /* FPU settings 设置FPU */
+  #if (__FPU_PRESENT == 1) && (__FPU_USED == 1)
+    SCB->CPACR |= ((3UL << 10*2)|(3UL << 11*2));  /* set CP10 and CP11 Full Access CPACR:协处理器访问控制寄存器 */
+/*
+0b00: 拒绝访问.任何访问尝试都会产生一个NOCP的UsageFault.
+0b01: 优先级访问.非优先级访问产生一个NOCP fault.
+0b10: 保留.访问的结果未预期
+0b11: 全访问
+*/
+  #endif
+
+  /* Reset the RCC clock configuration to the default reset state 
+     复位RCC时钟配置为复位后默认状态 */
+
+  /* Set HSION bit 内部高速时钟使能*/
+  RCC->CR |= (uint32_t)0x00000001;
+
+  /* Reset CFGR register 时钟配置寄存器 */
+  RCC->CFGR = 0x00000000;
+
+  /* Reset HSEON, CSSON and PLLON bits */
+  RCC->CR &= (uint32_t)0xFEF6FFFF;
+
+  /* Reset PLLCFGR register */
+  RCC->PLLCFGR = 0x24003010;
+
+  /* Reset HSEBYP bit */
+  RCC->CR &= (uint32_t)0xFFFBFFFF;
+
+  /* Disable all interrupts 时钟中断寄存器 */
+  RCC->CIR = 0x00000000;
+
+#ifdef DATA_IN_ExtSRAM
+  SystemInit_ExtMemCtl();
+#endif /* DATA_IN_ExtSRAM */
+
+  /* Configure the System clock source, PLL Multiplier and Divider factors, 
+     AHB/APBx prescalers and Flash settings ----------------------------------*/
+  SetSysClock();
+
+  /* Configure the Vector Table location add offset address ------------------*/
+#ifdef VECT_TAB_SRAM
+  SCB->VTOR = SRAM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
+#else
+  SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
+#endif
+}
+
+#+END_SRC
+
+#+BEGIN_SRC c
+
+int main(void)
+{
+    /* disable interrupt first */
+    rt_hw_interrupt_disable();
+
+    /* startup RT-Thread RTOS */
+    rtthread_startup();
+
+    return 0;
+
+#+END_SRC
+
+关注 =rtthread_startup()= 函数，就在startup.c中，这是rt-thread的入口。
+#+BEGIN_SRC c
+/*This function will startup RT-Thread RTOS.*/
+void rtthread_startup(void)
+{
+    /*init board*/
+    rt_hw_board_init();
+
+    /*show version*/
+    rt_show_version();
+    
+    /*init tick*/
+    rt_system_tick_init();
+
+    /*init kernel object*/
+    rt_system_object_init();
+
+    /*init timer system*/
+    rt_system_timer_init();
+
+#if STM32_EXT_SRAM
+    ext_sram_init();
+    rt_system_heap_init((void*)STM32_EXT_SRAM_BEGIN,
+                        (void*)STM32_EXT_SRAM_END);
+#else
+    rt_system_heap_init((void*)STM32_SRAM_BEGIN, (void*)STM32_SRAM_END);
+#endif /* STM32_EXT_SRAM */
+
+    /* init scheduler system */
+    rt_system_scheduler_init();
+
+    /* init all device */
+    rt_device_init_all();
+
+    /*init application*/
+    rt_application_init();
+
+    /*init timer thread*/
+    rt_system_timer_thread_init();
+
+    /*init idle thread*/
+    rt_thread_idle_init();
+
+    /*start scheduler*/
+    rt_system_scheduler_start();
+
+    /*never reach here*/
+    return;
+}
+#+END_SRC
+
+这段代码做了不少的事情，而且每一个事情的背后都隐藏着很多的知识储备。
+- 初始化板子
+- 打印版本信息
+- 初始化tick
+- 初始化内核对象
+- 初始化定时器系统
+- 初始化外部SRAM(在定义的情况下)
+- 初始化调度系统
+- 初始化所有的设备
+- 初始化应用程序
+- 初始化定时器线程
+- 初始化空闲进程
+- 开始调度
+
+上面这些，大部分还都是与内核紧密相连的，没什么办法，一个一个的看看
+
+1. =rt_hw_board_init()=
+#+BEGIN_SRC c
+/*This function will initial STM32 board.*/
+void rt_hw_board_init()
+{
+    /*NVIC Configuration 设置中断向量表*/
+    NVIC_Configurationa();
+
+    /*Configure the SysTick 配置系统tick定时器和它的中断，并且启动tick定时器*/
+    SysTick_Config(SystemCoreClock/RT_TICK_PER_SECOND);
+
+    rt_hw_usart_init();/*根据定义的宏，配置对应的串口，并且注册了UART1*/
+#ifdef RT_USING_CONSOLE
+    rt_console_set_device(RT_CONSOLE_DEVICE_NAME);/*设置一个设备作为控制台设备。所有的输出都会被重定向到这个设备*/
+#endif
+
+    fsmc_gpio_init();/*配置液晶屏控制器*/
+
+    mco_config();/*配置晶振*/
+}
+#+END_SRC
+
+2. =void rt_show_version(void)=
+这个函数就是用 =rt_kprintf= 打印了一些信息。
+
+3. =void rt_system_tick_init(void)= 
+这个函数在新的版本中不使用了
+
+4. =void rt_system_object_init(void)=
+这个函数在新的版本中不使用了
+
+5. =void rt_system_timer_init(void)=
+这个函数在新的版本中不使用了
+
+6. =void rt_system_scheduler_init(void)=
+这个函数将会初始化系统调度器
+#+BEGIN_SRC c
+void rt_system_scheduler_init(void)
+{
+    register rt_base_t offset;
+
+    rt_scheduler_lock_nest = 0;
+
+    RT_DEBUG_LOG(RT_DEBUG_SCHEDULER, 
+      ("start scheduler: max priority 0X%02x\n", RT_THREAD_PRIORITY_MAX));
+
+    for (offset = 0; offset < RT_THREAD_PRIORITY_MAX; offset++) {
+        rt_list_init(&rt_thread_priority_table[offset]);
+    }
+
+    rt_current_priority = RT_THREAD_PRIORITY_MAX - 1;
+    rt_current_thread = RT_NULL;
+
+    /*initialize ready priority group*/
+    rt_thread_ready_priority_group = 0;
+
+#if RT_THREAD_PRIORITY_MAX > 32
+    /*initialize ready table */
+    rt_memset(rt_thread_ready_table, 0, sizeof(rt_thread_ready_table));
+#endif
+
+    /*initialize thread defunct*/
+    rt_list_init(&rt_thread_defunct);
+}
+#+END_SRC
+
+这里面比较主要的一个调用是rt_list_init()函数
+
+跟踪一下代码
+
+rtservice.h
+#+BEGIN_SRC c
+rt_inline void rt_list_init(rt_list_t *l)
+{
+    l->next = l->prev = l;
+}
+/*一个指向自己的链表，还是双向链表*/
+#+END_SRC
+#+BEGIN_SRC c
+struct rt_list_node
+{
+    struct rt_list_node *next;
+    struct rt_lsit_node *prev;
+};
+typedef struct rt_list_node rt_list_t;
+/*定义了一个链表中的一个节点*/
+#END_SRC
+
+目前，我们接触到了一个数据结构，就是双向链表，而且是跟调度相关的。
+
+暂时能想到的关联就是用这个双向链表管理所有的进程。
+
+7. =rt_device_init_all()= 和 =rt_application_init()= 暂时先不分析。
+
+device里面出现了object，而且是个抽象的设备层，这个放到后面再研究。
+
+application则是创建线程，也先不管。
+
+8. =rt_system_timer_thread_init()=
+这个函数将会初始化所有的系统定时器线程
+#+BEGIN_SRC c
+void rt_system_timer_thread_init(void)
+{
+#ifdef RT_USING_TIMER_SOFT
+    rt_list_init(&rt_soft_timer_list);
+
+    /*start software timer thread*/
+    rt_thread_init(&timer_thread,
+             "timer",
+	     rt_thread_timer_entry, RT_NULL,
+	     &timer_thread_stack =[0]=, sizeof(timer_thread_stack),
+	     RT_TIMER_THREAD_PRIO, 10);
+
+    /*startup*/
+    rt_thread_startup(&timer_thread);
+#endif
+}
+#END_SRC
+
+定义了一个软定时器双向链表 =rt_soft_timer_list=
+
+又开了一个线程 =rt_thread_timer_entry=
+
+=rt_thread_startup= 是用来启动一个线程，并且把它放到系统ready queue里面去。
+
+对于 =rt_thread_init= 解释是这个函数用来初始化一个线程，通常它被用来初始化一个静态thread object。
+
+并且调用了 =rt_object_init= 和 =_rt_thread_init= 两个函数
+
+
