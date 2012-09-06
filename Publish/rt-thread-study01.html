@@ -6,7 +6,7 @@ lang="en" xml:lang="en">
 <title>rt-thread之realtouch 学习笔记 01</title>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2012-09-05 15:23:46 CST"/>
+<meta name="generated" content="2012-09-06 17:20:37 CST"/>
 <meta name="author" content="Wizard.Yang"/>
 <style type="text/css">
  <!--/*--><![CDATA[/*><!--*/
@@ -89,10 +89,12 @@ lang="en" xml:lang="en">
 <li><a href="#sec-2.8">2.8 <code>rt_system_timer_thread_init()</code> </a></li>
 <li><a href="#sec-2.9">2.9 <code>rt_thread_idle_init()</code> </a></li>
 <li><a href="#sec-2.10">2.10 <code>rt_system_scheduler_start()</code> </a></li>
+</ul></li>
 </ul>
 </li>
-</ul>
-</li>
+<li><a href="#sec-3">3 优先级探索 </a></li>
+<li><a href="#sec-4">4 发现DEBUG </a></li>
+<li><a href="#sec-5">5 定时器 SysTick </a></li>
 </ul>
 </div>
 </div>
@@ -912,6 +914,15 @@ r0用来存放to参数，这个函数用来处理第一个线程交换。没太�
 </p>
 
 <hr/>
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-3" class="outline-2">
+<h2 id="sec-3">3 优先级探索 </h2>
+<div id="text-3">
+
 
 <p>
 根据 <code>void rt_system_scheduler_start(void)</code> 函数中的内容，我们可以看到，跟优先级有关系的有下面这么几个变量
@@ -1138,12 +1149,325 @@ idle主要是把不需要的线程从链表里删除
 </p>
 <p>
 这个具体执行调度的地方我还是不是很清楚，没有说找到特别明确的代码片段。
-</p></div>
+</p>
+
+<hr/>
+
+</div>
+
+</div>
+
+<div id="outline-container-4" class="outline-2">
+<h2 id="sec-4">4 发现DEBUG </h2>
+<div id="text-4">
+
+
+<p>
+rtdebug.h里面有好多的宏开关，我们应该尝试打开一下，看一下输出信息。
+</p>
+
+
+
+<pre class="src src-sh">
+ <span style="color: #8fbc8f; font-style: italic;">\ </span>| /
+- RT -     Thread Operating System
+ / | <span style="color: #8fbc8f; font-style: italic;">\ </span>    1.1.0 build Sep  6 2012
+ 2006 - 2012 Copyright by rt-thread team
+mem init, heap begin address 0x60000000, size 524264
+start scheduler: max priority 0x20
+malloc size 136
+thread (NULL) take sem:heap, which value is: 1
+thread (NULL) releases sem:heap, which value is: 0
+allocate memory at 0x6000000c, size: 148
+malloc size 2048
+thread (NULL) take sem:heap, which value is: 1
+thread (NULL) releases sem:heap, which value is: 0
+allocate memory at 0x600000a0, size: 2060
+[create]thread name:init priority:a
+startup a thread:init with priority:10
+thread resume:  init
+insert thread[init], the priority: 10
+[init]thread name:tidle priority:1f
+startup a thread:tidle with priority:31
+thread resume:  tidle
+insert thread[tidle], the priority: 31
+<span style="color: #add8e6; font-weight: bold; font-style: italic;">rt_thread_ready_priority_group</span>=80000400
+<span style="color: #add8e6; font-weight: bold; font-style: italic;">number</span>=a
+<span style="color: #add8e6; font-weight: bold; font-style: italic;">highest_ready_priority</span>=a
+irq coming..., irq nest:0
+timer check enter
+timer check leave
+irq leave, irq nest:1
+irq coming..., irq nest:0
+timer check enter
+timer check leave
+irq leave, irq nest:1
+irq coming..., irq nest:0
+timer check enter
+timer check leave
+irq leave, irq nest:1
+irq coming..., irq nest:0
+timer check enter
+timer check leave
+irq leave, irq nest:1
+</pre>
+
+
+
+
+<p>
+debug全开之后的信息如上所示，以后的信息就更加混乱了，试图从上面的信息里面分析一些东西出来吧。
+</p>
+<p>
+在scheduler.c中的每个函数入口和出口的地方都加入一个打印信息，得到了另外的一组调试数据。
+</p>
+
+
+<pre class="src src-sh">
+ <span style="color: #8fbc8f; font-style: italic;">\ </span>| /
+- RT -     Thread Operating System
+ / | <span style="color: #8fbc8f; font-style: italic;">\ </span>    1.1.0 build Sep  6 2012
+ 2006 - 2012 Copyright by rt-thread team
+[scheduler] enter rt_system_scheduler_init
+start scheduler: max priority 0x20
+[scheduler] leave rt_system_scheduler_init
+[create]thread name:init priority:a
+[scheduler] enter rt_schedule_insert_thread
+insert thread[init], the priority: 10
+[scheduler] leave rt_schedule_insert_thread
+[init]thread name:tidle priority:1f
+[scheduler] enter rt_schedule_insert_thread
+insert thread[tidle], the priority: 31
+[scheduler] leave rt_schedule_insert_thread
+[scheduler] enter rt_system_scheduler_start
+<span style="color: #add8e6; font-weight: bold; font-style: italic;">rt_thread_ready_priority_group</span>=80000400
+<span style="color: #add8e6; font-weight: bold; font-style: italic;">number</span>=a
+<span style="color: #add8e6; font-weight: bold; font-style: italic;">highest_ready_priority</span>=a
+[scheduler] switch-to init
+[init]thread name:tshell priority:14
+[scheduler] enter rt_schedule_insert_thread
+insert thread[tshell], the priority: 20
+[scheduler] leave rt_schedule_insert_thread
+[scheduler] enter rt_schedule
+[scheduler] leave rt_schedule
+[scheduler] enter rt_enter_critical
+[scheduler] leave rt_enter_critical
+[scheduler] enter rt_exit_critical
+[scheduler] enter rt_schedule
+[scheduler] leave rt_schedule
+[scheduler] leave rt_exit_critical
+[scheduler] enter rt_enter_critical
+[scheduler] leave rt_enter_critical
+[scheduler] enter rt_exit_critical
+[scheduler] enter rt_schedule
+[scheduler] leave rt_schedule
+[scheduler] leave rt_exit_critical
+[create]thread name:rtgui priority:f
+[scheduler] enter rt_schedule_insert_thread
+insert thread[rtgui], the priority: 15
+[scheduler] leave rt_schedule_insert_thread
+[scheduler] enter rt_schedule
+[scheduler] leave rt_schedule
+[scheduler] enter rt_enter_critical
+[scheduler] leave rt_enter_critical
+[scheduler] enter rt_exit_critical
+[scheduler] enter rt_schedule
+[scheduler] leave rt_schedule
+[scheduler] leave rt_exit_critical
+[scheduler] enter rt_enter_critical
+[scheduler] leave rt_enter_critical
+</pre>
+
+
+
+<p>
+研究一下，在create init线程的时候，为什么会进入 <code>rt_system_scheduler_init</code> 函数
+</p>
+
+
+
+<pre class="src src-c">
+rt_system_timer_thread_init();
+</pre>
+
+
+
+<p>
+为了看的更加详细些，建议在thread.c里面的每个函数里面也都加入调试信息-&gt;
+</p>
+
+
+<pre class="src src-c">
+rt_thread_init();
+-&gt;enter rt_thread_create();
+-&gt;enter _rt_thread_init();
+-&gt;leave _rt_thread_init();
+-&gt;leave rt_thread_create();
+rt_thread_startup();
+-&gt;enter rt_thread_startup();
+-&gt;print <span style="color: #8fbc8f; font-style: italic;">"startup a thread: init with priority:10"</span>
+</pre>
+
+
+
+
+<p>
+然后代码改变了线程的状态
+</p>
+
+
+<pre class="src src-c">
+thread-&gt;stat = RT_THREAD_SUSPEND;
+
+rt_thread_resume(thread);
+</pre>
+
+
+
+
+<p>
+从而导致了
+</p>
+
+
+<pre class="src src-c">
+-&gt;enter rt_thread_resume();
+-&gt;&#20174;suspend list&#20013;&#31227;&#38500;&#65292;&#28982;&#21518;&#28155;&#21152;&#21040;schedule ready list&#20013;&#21435;
+-&gt;enter rt_schedule_insert_thread();
+-&gt;leave rt_schedule_insert_thread();
+-&gt;leave rt_thread_resume();
+
+-&gt;enter rt_thread_self();
+&#22240;&#20026;&#36824;&#27809;&#26377;&#25191;&#34892;&#36807;rt_system_scheduler_start();&#25152;&#20197;&#36825;&#37324;&#19981;&#25191;&#34892;rt_schedule();
+-&gt;leave rt_thread_self();
+
+-&gt;leave rt_thread_startup();
+</pre>
+
+
+
+
+<p>
+在用同样的流程创建完idle线程之后才开始调用 <code>rt_system_scheduler_start</code>
+</p>
+<p>
+在这个函数里面寻找优先级最高，也就是数最小的那个线程，然后把 <code>rt_current_thread</code> 赋值。
+</p>
+<p>
+执行 <code>rt_hw_context_switch_to</code> 函数，进行切换
+</p>
+<p>
+<code>rt_hw_context_switch_to</code> 是个汇编代码，在 <code>context_rvds.S</code> 中
+</p>
+<p>
+里面主要用到了
+</p><ul>
+<li>
+<code>rt_interrupt_to_thread</code>
+</li>
+<li>
+<code>rt_interrupt_from_thread</code>
+</li>
+<li>
+<code>rt_thread_switch_interrupt_flag</code>
+</li>
+<li>
+<code>NVIC_SYSPRI2</code>
+</li>
+<li>
+<code>NVIC_PENDSV_PRI</code>
+</li>
+<li>
+<code>NVIC_INT_CTRL</code>
+</li>
+<li>
+<code>NVIC_PENDSVSET</code>
+</li>
+</ul>
+
+<p>最后触发了 <code>context_rvds.S</code> 里面的 <code>PendSV_Handler</code> 过程
+</p>
+<p>
+然后，一开始注册的init线程才开始工作，在此之前只有timer线程和idle线程工作。
+</p>
+<p>
+现在，简单的归纳一下：
+</p>
+<p>
+一开始从 <code>rt_applicaton_init()</code> 中注册了init线程，并没有启动。
+</p>
+<p>
+因为这个时候init线程的rt<sub>current</sub><sub>thread还是RT</sub><sub>NULL</sub>
+</p>
+<p>
+然后注册了timer线程和idle线程，也没有启动
+</p>
+<p>
+一直等到 <code>rt_system=scheduler_start()</code> 函数执行，才开始唤醒线程。
+</p>
+<p>
+由于没有定义 <code>RT_USING_TIMER_SOFT</code> 所以timer线程没有被注册！
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-5" class="outline-2">
+<h2 id="sec-5">5 定时器 SysTick </h2>
+<div id="text-5">
+
+
+<p>
+现在，回过头来看一下 <code>_rt_thread_init()</code> 这个函数
+</p>
+<p>
+最后有一段
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">init thread timer -&gt; timer.c</span><span style="color: #cccccc; font-style: italic;">*/</span>
+rt_timer_init(&amp;(thread-&gt;thread_timer), <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#38745;&#24577;&#23450;&#26102;&#22120;&#23545;&#35937;
+</span>              thread-&gt;name,            <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#23450;&#26102;&#22120;&#30340;&#21517;&#23383;
+</span>              rt_thread_timeout,       <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#36229;&#26102;&#20989;&#25968;
+</span>              thread,                  <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#36229;&#26102;&#20989;&#25968;&#30340;&#21442;&#25968;
+</span>              0,                       <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#23450;&#26102;&#22120;&#30340;tick
+</span>              RT_TIMER_FLAG_ONE_SHOT); <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#23450;&#26102;&#22120;&#30340;&#26631;&#24535;&#20301;
+</span></pre>
+
+
+
+
+<p>
+找了很多文件，发现没有一个集中的说明问题的……
+</p>
+<p>
+《Cortex-M4 Technical Reference Manual》
+</p>
+<p>
+4.2 Register summary
+</p>
+<p>
+System control reigsters
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="right"></col><col align="left"></col><col align="left"></col><col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>Address</th><th>Name</th><th>Type</th><th>Reset</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>0xE000E010</td><td>STCSR</td><td>RW</td><td>0x00000000</td><td>SysTick Control and Status Register</td></tr>
+<tr><td>0xE000E014</td><td>STRVR</td><td>RW</td><td>Unknown</td><td>SysTick Reload Value Register</td></tr>
+<tr><td>0xE000E018</td><td>STCVR</td><td>RW clear</td><td>Unkndow</td><td>SysTick Current Value Register</td></tr>
+<tr><td>0xE000E01C</td><td>STCR</td><td>RO</td><td>STCALIB</td><td>SysTick Calibration Value Register</td></tr>
+</tbody>
+</table>
+
 </div>
 </div>
 <div id="postamble"><p class="author"> Author: Wizard.Yang
 <a href="mailto:xblandy@gmail.com">&lt;xblandy@gmail.com&gt;</a>
 </p>
-<p class="date"> Date: 2012-09-05 15:23:46 CST</p>
+<p class="date"> Date: 2012-09-06 17:20:37 CST</p>
 </div></body>
 </html>
