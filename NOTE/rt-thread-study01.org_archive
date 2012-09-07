@@ -341,4 +341,224 @@ void rt_system_timer_thread_init(void)
 
 并且调用了 =rt_object_init= 和 =_rt_thread_init= 两个函数
 
+* DONE 定时器 SysTick
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2012-09-07 五 13:39
+  :ARCHIVE_FILE: ~/git/EmacsOrg/NOTE/rt-thread-study01.org
+  :ARCHIVE_CATEGORY: rt-thread-study01
+  :END:
+
+现在，回过头来看一下 =_rt_thread_init()= 这个函数
+
+最后有一段
+#+BEGIN_SRC c
+/*init thread timer -> timer.c*/
+rt_timer_init(&(thread->thread_timer), //静态定时器对象
+              thread->name,            //定时器的名字
+              rt_thread_timeout,       //超时函数
+              thread,                  //超时函数的参数
+              0,                       //定时器的tick
+              RT_TIMER_FLAG_ONE_SHOT); //定时器的标志位
+#+END_SRC
+
+找了很多文件，发现没有一个集中的说明问题的……
+
+《Cortex-M4 Technical Reference Manual》
+
+4.2 Register summary
+
+System control reigsters
+
+|    Address | Name  | Type     | Reset      | Description                         |
+|------------+-------+----------+------------+-------------------------------------|
+| 0xE000E010 | STCSR | RW       | 0x00000000 | SysTick Control and Status Register |
+| 0xE000E014 | STRVR | RW       | Unknown    | SysTick Reload Value Register       |
+| 0xE000E018 | STCVR | RW clear | Unkndow    | SysTick Current Value Register      |
+| 0xE000E01C | STCR  | RO       | STCALIB    | SysTick Calibration Value Register  |
+
+《STM32F4xxx Cortex-M4 programming manual》
+
+4.5 SysTick timer (STK)
+
+The processor has a 24-bit system timer, SysTick, that counts down from the reload value to zero, reloads (wraps to) the value in the STK_LOAD register on the next clock edge, then counts down on subsequent clocks.
+
+When the processor is halted for debugging the counter does not decrement.
+
+| STK_CTRL SysTick control and status register |                                                                                  |
+|----------------------------------------------+----------------------------------------------------------------------------------|
+| COUNTFLAG                                    | Returns 1 if timer counted to 0 since last time this was read                    |
+| CLKSOURCE                                    | Clock source selection                                                           |
+|                                              | 0: AHB/8                                                                         |
+|                                              | 1: Processor clock (AHB)                                                         |
+| TICKINT                                      | SysTick exception request enable                                                 |
+|                                              | 0: Counting down to zero does not assert the SysTick excepton request            |
+|                                              | 1: Counting down to zero to asserts the SysTick exception request                |
+|                                              | Note:Software can use COUNTFLAG to determine if SysTick has ever counted to zero |
+| ENABLE                                       | Counter Enable                                                                   |
+|                                              | 0: Counter disabled                                                              |
+|                                              | 1: Counter enabled                                                               | 
+Enables the counter. When ENABLE is set to 1, the counter loads the RELOAD value from the LOAD register and then counts down.
+
+On reaching 0, it sets the COUNTFLAG to 1 and optionally asserts the SysTick depending on the value of TICKINT. 
+
+It then loads the RELOAD value again, and begins counting.  
+
+| STK_LOAD | SysTick reload value register                                                                             |
+|----------+-----------------------------------------------------------------------------------------------------------|
+| RELOAD   | RELOAD value                                                                                              |
+|          | The LOAD register specifies the start value to load into the STK_VAL register when the counter is enabled |
+|          | and when it reaches 0.                                                                                    |
+
+Calculating the RELOAD value
+
+The RELOAD value can be any value in the range 0x00000001-0x00FFFFFF. 
+
+A start value of 0 is possible, but has no effect because the SysTick exception request and COUNTFLAG are activated when count from 1 to 0.
+
+The RELOAD value is calculated according to its use:
+
+- To generato a multi-shot timer with a period of N processor clock cycles, use a RELOAD value of N-1. For example, if the SysTick interrupt is required every 100 clock pulses, set RELOAD to 99.
+
+- To deliver a single SysTick interrupt after a delay of N processor clock cycles, use a RELOAD of value N. For example, if a SysTick interrupt is required after 100 clock pulses, set RELOAD to 99.
+
+| STK_VAL | SysTick current value regiser |
+|---------+-------------------------------|
+| CURRENT | Current counter value         | 
+The VAL register contains the current value of the SysTick counter.
+
+Reads return the current value of the SysTick counter.
+
+A write of any value clears the field to 0, and also clears the COUNTFLAG bit in the STK_CTRL_register to 0.
+
+| STK_CALIB | SysTick calibration value register                                                                                |
+|-----------+-------------------------------------------------------------------------------------------------------------------|
+| NOREF     | NOREF flag.                                                                                                       |
+|           | Reads as zero. Indicates that a separate reference clock is provided. The frequency of this clock is HCLK/8       |
+| SKEW      | SKEW falg.                                                                                                        |
+|           | Indicates whether the TENMS value is exact.                                                                       |
+|           | Reads as one. Calibration value for the 1 ms inexact timing is not knownbecause TENMS is not known.               |
+|           | This can affect the suitablity of SysTick as a software real time clock.                                          |
+| TENMS     | Calibration value.                                                                                                |
+|           | Indicates the calibration value when the SysTick counter run on HCLK max/8 as external clock.                     |
+|           | The value is product denpendent, please refer to the Product Reference Manual, SysTick Calibration Value section. |
+|           | When HCLK is programmed at the maximum frequency, the SysTick period is 1ms.                                      |
+|           | If calibration information is not known,                                                                          |
+|           | calculate the calibration value required from the frequency of the processor clock or external clock.             |
+
+SysTick design hits and tips
+
+The SysTick counter runs on the processor clock.
+
+If this clock signal is stopped for low power mode, the SysTick couner stops.
+
+Ensure software uses aligned word accesses to access the SysTick registers.
+
+The SysTick counter relaod and current value are undefined at reset, the correct initializaton sequence for the SysTick counter is :
+1. Program reload value.
+2. Clear current value.
+3. Program Countrol and Status register.
+
+看完了数据手册，对应的看一下代码 =core_cm4.h=
+
+#+BEGIN_SRC c
+/* System Tick Configration
+   This function initialises the system tick timer and its interrupt and start the system tick tiemr.
+   Counter is in free running mode to generate periodical interrupts.
+ */
+static __INLINE uint32_t SysTick_Confit(uint32_t ticks)
+{
+    if (ticks > SysTick_LOAD_RELOAD_Msk) { /* Reload value impossible */
+        return(1);
+    }
+    SysTick->LOAD = (tick & SysTick_LOAD_RELOAD_Msk) - 1; /*set reload register*/
+    NVIC_SetPriority(SysTick_IRQn, (1<<__NVIC_PRIO_BITS)-1);/*set Priority for Coterx-M0 System Interrupts*/
+    SysTick->VAL = 0;
+    SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk |
+                    SysTick_CTRL_TICKINT_Msk   |
+                    SysTick_CTRL_ENABLE_Msk; /*Enable SysTick IRQ and SysTick Timer*/
+}
+#+END_SRC
+
+#+BEGIN_SRC c
+/*SysTick Reload Register Definitions*/
+#define SysTick_LOAD_RELOAD_Pos 0                                     /*SysTick LOAD: RELOAD Position*/
+#define SysTick_LOAD_RELOAD_Msk (0xFFFFFFUL<<SysTick_LOAD_RELOAD_Pos) /*SysTick LOAD: RELOAD Mask*/
+#+END_SRC
+
+基本上做的事情是： 
+
+先赋值，设置中断，清零，设置控制位
+
+这个 =SysTick_IRQn= 在stm32f4xx.h里面
+
+typedef enum IRQn-> =SysTick_IRQn= = -1 /*Cortex-M4 System Tick Interrupt*/
+
+然后让我们跟踪一下这个中断吧
+
+=startup_stm32f4xx.s= 里面写到
+#+BEGIN_SRC asm
+DCD SysTick_Handler
+
+SysTick_Handler PROC
+                EXPORT SysTick_Handler [WEAK]
+		B      .
+                ENDP
+#+END_SRC
+
+实现在board.c里面
+#+BEGIN_SRC c
+void SytTick_Handler(void)
+{
+    rt_interrupt_enter();
+    rt_tick_increase();
+    rt_interrupt_leave();
+}
+#+END_SRC
+
+#+BEGIN_SRC c
+void rt_tick_increase(void)
+{
+    struct rt_thread *thread; //定义一个线程结构体
+
+    ++rt_tick; //这是一个静态全局变量，应该是用来存tick计数的
+
+    thread = tr_thread_self(); //获取当前在运行的线程
+
+    -- thread->remainning_tick; //线程剩余时间减少
+    if (thread->remaining_tick == 0) { //看看是不是减少到零了
+        thread->remaining_tick = thread->init_tick; //准备重新开始
+	rt_thread_yield(); //主动让出CPU
+    }
+    rt_timer_check(); //timer.c 检查timer list，如果一个超时事件发生，相关的超时函数将会被调用
+                      // 这个函数应该在操作系统时间中断内被调用                                                           
+}
+#+END_SRC
+
+timer.c
+#+BEGIN_SRC c
+void rt_timer_check(void)
+{
+    struct rt_timer *t;
+    rt_tick_t current_tick;
+    register rt_base_t level;
+
+    current_tick = rt_tick_get();
+
+    /*disable interrupt*/
+    level = rt_hw_interrupt_disable();
+
+    while(!rt_list_isempty(&rt_timer_list)) {
+        t = rt_list_entry(rt_timer_list.next, struct rt_timer, list);
+
+	/*
+	    It supposes that the new tick shall less than the half duration ofo tick max.
+	*/
+    }
+    
+    /* enable interrupt */
+    rt_hw_interrupt_enable(level);
+}
+#+END_SRC
+
+
 

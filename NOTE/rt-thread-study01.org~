@@ -351,7 +351,7 @@ struct rt_list_node
 };
 typedef struct rt_list_node rt_list_t;
 /*定义了一个链表中的一个节点*/
-#END_SRC
+#+END_SRC
 
 目前，我们接触到了一个数据结构，就是双向链表，而且是跟调度相关的。
 
@@ -568,3 +568,452 @@ void rt_system_scheduler_start(void)
 r0用来存放to参数，这个函数用来处理第一个线程交换。没太看懂这个汇编过程的主要用意，主要还是对线程的上下文交换需要作哪些事情不是很清楚。
 
 那么在此时，优先级别最高的线程是哪个呢？这是个问题！
+
+------
+* 优先级探索
+
+根据 =void rt_system_scheduler_start(void)= 函数中的内容，我们可以看到，跟优先级有关系的有下面这么几个变量
+
+- =register rt_ubase_t highest_ready_priority=
+- =register rt_ubase_t number=
+- =rt_thread_ready_priority_group=
+
+打印一下信息可以得到
+#+BEGIN_SRC sh
+rt_thread_ready_priority_group=80000400
+number=a
+highest_ready_priority=a
+#+END_SRC
+因此，我们要研究一下，它们是怎么被赋值的。
+
+先关注一下 =rt_thread_ready_priority_group= 这个变量，它在 =rt_system_scheduler_init= 函数里面已经被初始化为0了。
+
+在这之间，还有三个函数需要查看 =rt_application_init()=, =rt_system_timer_thread_init()=, =rt_thread_idle_init()=, 这三个里面都建立了线程。
+
+#+BEGIN_SRC c
+rt_thread_create("init",                        //线程的名字
+                  rt_init_thread_entry,         //线程的入口函数
+                  RT_NULL,                      //入口函数的参数
+                  2048,                         //线程栈的大小
+                  RT_THREAD_PRIORITY_MAX/3,     //线程的优先级
+                  20);                          //同样优先级情况下的分配的时间片
+#+END_SRC
+
+#+BEGIN_SRC c
+rt_thread_init(&timer_thread,                   //静态线程对象
+               "tiemr",                         //线程名字
+               rt_thread_timer_entry,           //线程函数入口
+               RT_NULL,                         //线程函数参数
+               &timer_thread_stack[0],          //线程栈开始地址
+               sizeof(timer_thread_stack),      //线程栈大小
+               RT_TIMER_THREAD_PRIO,            //线程优先级
+               10)                              //时间片
+#+END_SRC
+
+#+BEGIN_SRC c
+rt_thread_init(&idle,
+               "tidle",
+               rt_thread_idle_entry,
+               RT_NULL,
+               &rt_thread_stack[0],
+               sizeof(rt_thread_stack),
+               RT_THREAD_PRIORITY_MAX-1,
+               32);
+#+END_SRC
+
+那么我们打印一下init和create的线程信息，看一下优先级是怎样的
+
+#+BEGIN_SRC sh
+[create]thread name:init priority:a
+[init]thread name:tidle priority:1f
+[init]thread name:tshell priority:14
+[init]thread name:erx priority:e
+[init]thread name:etx priority:e
+[create]thread name:tcpip priority:c
+[create]thread name:rtgui priority:f
+[create]thread name:touch priority:e
+[init]thread name:mmcsd_detect priority:f
+[create]thread name:key priority:e
+[create]thread name:app_mgr priority:14
+[create]thread name:cali priority:14
+#+END_SRC
+
+而且是，在 =rt_system_scheduler_start()= 的时候，只有init和tidle两个线程被注册了。
+
+还有一个timer的线程不知道为什么没有打印出来，也是通过 =rt_thread_init= 注册的。
+
+现在，先看一下这三个线程所注册的函数
+
+init-> =rt_init_thread_entry=
+
+timer-> =rt_thread_timer_entry=
+
+tidle-> =rt_thread_idle_entry=
+
+=rt_init_thread_entry= 是最麻烦的，先来看一下它
+#+BEGIN_SRC c
+void rt_init_thread_entry(void *parameter)
+{
+#ifdef RT_USING_COMPONENTS_INIT
+    /* initialization RT-Thread Components */
+    rt_components_init();
+#endif
+    rt_platform_init();
+    /* Filesystem Initialization */
+#ifdef RT_USING_DFS
+    /*mount sd card fat partition 1 as root directory */
+    if (dfs_mount("sd0", "/", "elm", 0, 0)== 0) {
+        rt_kprintf("File System initialized!\n");
+    } else  {
+        rt_kprintf("File System initialzation failed!\n");
+    }
+#endif
+#ifdef RT_USING_RTGUI
+    realtouch_ui_init();
+#endif
+}
+#+END_SRC
+调用了三个函数做了不少事情。
+
+看一下 =rt_thread_timer_entry=
+#+BEGIN_SRC c
+static void rt_thread_timer_entry(void *parameter)
+{
+    rt_tick_t next_timeout;
+
+    while (1) {
+        next_timeout = rt_timer_list_next_timeout(&rt_soft_timer_list);
+	if (next_timeout == RT_TICK_MAX) {
+	    rt_thread_suspend(rt_thread_self());
+	    rt_schedule();
+	} else {
+	    rt_thread_delay(next_timeout);
+	}
+
+	/*lock scheduler*/
+	rt_enter_critical();
+	/*check software timer*/
+	rt_soft_timer_check();
+	/*unlock scheduler*/
+	rt_exit_critical();
+    }
+}
+#+END_SRC
+
+=rt_thread_idle_entry=
+#+BEGIN_SRC c
+static void rt_thread_idle_entry(void *parameter)
+{
+    while (1) {
+        #define RT_USING_HOOK
+        if (rt_thread_idle_hook != RT_NULL) {
+	    rt_thread_idle_hook();
+	}
+        #endif
+	rt_thread_idle_excute();
+    }
+}
+#+END_SRC
+
+=rt_thread_idle_excute()= 函数是比较复杂的
+
+这里面出现了两个while(1)的死循环。
+
+timer主要做的事情是检查timeout，将超时的线程挂起，然后重新调度。
+
+idle主要是把不需要的线程从链表里删除
+
+这个具体执行调度的地方我还是不是很清楚，没有说找到特别明确的代码片段。
+
+------
+
+* 发现DEBUG
+
+rtdebug.h里面有好多的宏开关，我们应该尝试打开一下，看一下输出信息。
+
+#+BEGIN_SRC sh
+ \ | /
+- RT -     Thread Operating System
+ / | \     1.1.0 build Sep  6 2012
+ 2006 - 2012 Copyright by rt-thread team
+mem init, heap begin address 0x60000000, size 524264
+start scheduler: max priority 0x20
+malloc size 136
+thread (NULL) take sem:heap, which value is: 1
+thread (NULL) releases sem:heap, which value is: 0
+allocate memory at 0x6000000c, size: 148
+malloc size 2048
+thread (NULL) take sem:heap, which value is: 1
+thread (NULL) releases sem:heap, which value is: 0
+allocate memory at 0x600000a0, size: 2060
+[create]thread name:init priority:a
+startup a thread:init with priority:10
+thread resume:  init
+insert thread[init], the priority: 10
+[init]thread name:tidle priority:1f
+startup a thread:tidle with priority:31
+thread resume:  tidle
+insert thread[tidle], the priority: 31
+rt_thread_ready_priority_group=80000400
+number=a
+highest_ready_priority=a
+irq coming..., irq nest:0
+timer check enter
+timer check leave
+irq leave, irq nest:1
+irq coming..., irq nest:0
+timer check enter
+timer check leave
+irq leave, irq nest:1
+irq coming..., irq nest:0
+timer check enter
+timer check leave
+irq leave, irq nest:1
+irq coming..., irq nest:0
+timer check enter
+timer check leave
+irq leave, irq nest:1
+#+END_SRC
+
+debug全开之后的信息如上所示，以后的信息就更加混乱了，试图从上面的信息里面分析一些东西出来吧。
+
+在scheduler.c中的每个函数入口和出口的地方都加入一个打印信息，得到了另外的一组调试数据。
+#+BEGIN_SRC sh
+ \ | /
+- RT -     Thread Operating System
+ / | \     1.1.0 build Sep  6 2012
+ 2006 - 2012 Copyright by rt-thread team
+[scheduler] enter rt_system_scheduler_init
+start scheduler: max priority 0x20
+[scheduler] leave rt_system_scheduler_init
+[create]thread name:init priority:a
+[scheduler] enter rt_schedule_insert_thread
+insert thread[init], the priority: 10
+[scheduler] leave rt_schedule_insert_thread
+[init]thread name:tidle priority:1f
+[scheduler] enter rt_schedule_insert_thread
+insert thread[tidle], the priority: 31
+[scheduler] leave rt_schedule_insert_thread
+[scheduler] enter rt_system_scheduler_start
+rt_thread_ready_priority_group=80000400
+number=a
+highest_ready_priority=a
+[scheduler] switch-to init
+[init]thread name:tshell priority:14
+[scheduler] enter rt_schedule_insert_thread
+insert thread[tshell], the priority: 20
+[scheduler] leave rt_schedule_insert_thread
+[scheduler] enter rt_schedule
+[scheduler] leave rt_schedule
+[scheduler] enter rt_enter_critical
+[scheduler] leave rt_enter_critical
+[scheduler] enter rt_exit_critical
+[scheduler] enter rt_schedule
+[scheduler] leave rt_schedule
+[scheduler] leave rt_exit_critical
+[scheduler] enter rt_enter_critical
+[scheduler] leave rt_enter_critical
+[scheduler] enter rt_exit_critical
+[scheduler] enter rt_schedule
+[scheduler] leave rt_schedule
+[scheduler] leave rt_exit_critical
+[create]thread name:rtgui priority:f
+[scheduler] enter rt_schedule_insert_thread
+insert thread[rtgui], the priority: 15
+[scheduler] leave rt_schedule_insert_thread
+[scheduler] enter rt_schedule
+[scheduler] leave rt_schedule
+[scheduler] enter rt_enter_critical
+[scheduler] leave rt_enter_critical
+[scheduler] enter rt_exit_critical
+[scheduler] enter rt_schedule
+[scheduler] leave rt_schedule
+[scheduler] leave rt_exit_critical
+[scheduler] enter rt_enter_critical
+[scheduler] leave rt_enter_critical
+#+END_SRC
+研究一下，在create init线程的时候，为什么会进入 =rt_system_scheduler_init= 函数
+
+#+BEGIN_SRC c 
+rt_system_timer_thread_init();
+#+END_SRC
+为了看的更加详细些，建议在thread.c里面的每个函数里面也都加入调试信息->
+#+BEGIN_SRC c
+rt_thread_init();
+->enter rt_thread_create();
+->enter _rt_thread_init();
+->leave _rt_thread_init();
+->leave rt_thread_create();
+rt_thread_startup();
+->enter rt_thread_startup();
+->print "startup a thread: init with priority:10"
+#+END_SRC
+
+然后代码改变了线程的状态
+#+BEGIN_SRC c
+thread->stat = RT_THREAD_SUSPEND;
+
+rt_thread_resume(thread);
+#+END_SRC
+
+从而导致了
+#+BEGIN_SRC c
+->enter rt_thread_resume();
+->从suspend list中移除，然后添加到schedule ready list中去
+->enter rt_schedule_insert_thread();
+->leave rt_schedule_insert_thread();
+->leave rt_thread_resume();
+
+->enter rt_thread_self();
+因为还没有执行过rt_system_scheduler_start();所以这里不执行rt_schedule();
+->leave rt_thread_self();
+
+->leave rt_thread_startup();
+#+END_SRC
+
+在用同样的流程创建完idle线程之后才开始调用 =rt_system_scheduler_start=
+
+在这个函数里面寻找优先级最高，也就是数最小的那个线程，然后把 =rt_current_thread= 赋值。
+
+执行 =rt_hw_context_switch_to= 函数，进行切换
+
+=rt_hw_context_switch_to= 是个汇编代码，在 =context_rvds.S= 中
+
+里面主要用到了
+- =rt_interrupt_to_thread=
+- =rt_interrupt_from_thread=
+- =rt_thread_switch_interrupt_flag=
+- =NVIC_SYSPRI2=
+- =NVIC_PENDSV_PRI=
+- =NVIC_INT_CTRL=
+- =NVIC_PENDSVSET=
+最后触发了 =context_rvds.S= 里面的 =PendSV_Handler= 过程
+
+然后，一开始注册的init线程才开始工作，在此之前只有timer线程和idle线程工作。
+
+现在，简单的归纳一下：
+
+一开始从 =rt_applicaton_init()= 中注册了init线程，并没有启动。
+
+因为这个时候init线程的rt_current_thread还是RT_NULL
+
+然后注册了timer线程和idle线程，也没有启动
+
+一直等到 =rt_system=scheduler_start()= 函数执行，才开始唤醒线程。
+
+由于没有定义 =RT_USING_TIMER_SOFT= 所以timer线程没有被注册！
+
+* 定时器 SysTick
+
+现在，回过头来看一下 =_rt_thread_init()= 这个函数
+
+最后有一段
+#+BEGIN_SRC c
+/*init thread timer -> timer.c*/
+rt_timer_init(&(thread->thread_timer), //静态定时器对象
+              thread->name,            //定时器的名字
+              rt_thread_timeout,       //超时函数
+              thread,                  //超时函数的参数
+              0,                       //定时器的tick
+              RT_TIMER_FLAG_ONE_SHOT); //定时器的标志位
+#+END_SRC
+
+找了很多文件，发现没有一个集中的说明问题的……
+
+《Cortex-M4 Technical Reference Manual》
+
+4.2 Register summary
+
+System control reigsters
+
+|    Address | Name  | Type     | Reset      | Description                         |
+|------------+-------+----------+------------+-------------------------------------|
+| 0xE000E010 | STCSR | RW       | 0x00000000 | SysTick Control and Status Register |
+| 0xE000E014 | STRVR | RW       | Unknown    | SysTick Reload Value Register       |
+| 0xE000E018 | STCVR | RW clear | Unkndow    | SysTick Current Value Register      |
+| 0xE000E01C | STCR  | RO       | STCALIB    | SysTick Calibration Value Register  |
+
+《STM32F4xxx Cortex-M4 programming manual》
+
+4.5 SysTick timer (STK)
+
+The processor has a 24-bit system timer, SysTick, that counts down from the reload value to zero, reloads (wraps to) the value in the STK_LOAD register on the next clock edge, then counts down on subsequent clocks.
+
+When the processor is halted for debugging the counter does not decrement.
+
+| STK_CTRL SysTick control and status register |                                                                                  |
+|----------------------------------------------+----------------------------------------------------------------------------------|
+| COUNTFLAG                                    | Returns 1 if timer counted to 0 since last time this was read                    |
+| CLKSOURCE                                    | Clock source selection                                                           |
+|                                              | 0: AHB/8                                                                         |
+|                                              | 1: Processor clock (AHB)                                                         |
+| TICKINT                                      | SysTick exception request enable                                                 |
+|                                              | 0: Counting down to zero does not assert the SysTick excepton request            |
+|                                              | 1: Counting down to zero to asserts the SysTick exception request                |
+|                                              | Note:Software can use COUNTFLAG to determine if SysTick has ever counted to zero |
+| ENABLE                                       | Counter Enable                                                                   |
+|                                              | 0: Counter disabled                                                              |
+|                                              | 1: Counter enabled                                                               | 
+Enables the counter. When ENABLE is set to 1, the counter loads the RELOAD value from the LOAD register and then counts down.
+
+On reaching 0, it sets the COUNTFLAG to 1 and optionally asserts the SysTick depending on the value of TICKINT. 
+
+It then loads the RELOAD value again, and begins counting.  
+
+| STK_LOAD | SysTick reload value register                                                                             |
+|----------+-----------------------------------------------------------------------------------------------------------|
+| RELOAD   | RELOAD value                                                                                              |
+|          | The LOAD register specifies the start value to load into the STK_VAL register when the counter is enabled |
+|          | and when it reaches 0.                                                                                    |
+
+Calculating the RELOAD value
+
+The RELOAD value can be any value in the range 0x00000001-0x00FFFFFF. 
+
+A start value of 0 is possible, but has no effect because the SysTick exception request and COUNTFLAG are activated when count from 1 to 0.
+
+The RELOAD value is calculated according to its use:
+
+- To generato a multi-shot timer with a period of N processor clock cycles, use a RELOAD value of N-1. For example, if the SysTick interrupt is required every 100 clock pulses, set RELOAD to 99.
+
+- To deliver a single SysTick interrupt after a delay of N processor clock cycles, use a RELOAD of value N. For example, if a SysTick interrupt is required after 100 clock pulses, set RELOAD to 99.
+
+| STK_VAL | SysTick current value regiser |
+|---------+-------------------------------|
+| CURRENT | Current counter value         | 
+The VAL register contains the current value of the SysTick counter.
+
+Reads return the current value of the SysTick counter.
+
+A write of any value clears the field to 0, and also clears the COUNTFLAG bit in the STK_CTRL_register to 0.
+
+| STK_CALIB | SysTick calibration value register                                                                                |
+|-----------+-------------------------------------------------------------------------------------------------------------------|
+| NOREF     | NOREF flag.                                                                                                       |
+|           | Reads as zero. Indicates that a separate reference clock is provided. The frequency of this clock is HCLK/8       |
+| SKEW      | SKEW falg.                                                                                                        |
+|           | Indicates whether the TENMS value is exact.                                                                       |
+|           | Reads as one. Calibration value for the 1 ms inexact timing is not knownbecause TENMS is not known.               |
+|           | This can affect the suitablity of SysTick as a software real time clock.                                          |
+| TENMS     | Calibration value.                                                                                                |
+|           | Indicates the calibration value when the SysTick counter run on HCLK max/8 as external clock.                     |
+|           | The value is product denpendent, please refer to the Product Reference Manual, SysTick Calibration Value section. |
+|           | When HCLK is programmed at the maximum frequency, the SysTick period is 1ms.                                      |
+|           | If calibration information is not known,                                                                          |
+|           | calculate the calibration value required from the frequency of the processor clock or external clock.             |
+
+SysTick design hits and tips
+
+The SysTick counter runs on the processor clock.
+
+If this clock signal is stopped for low power mode, the SysTick couner stops.
+
+Ensure software uses aligned word accesses to access the SysTick registers.
+
+The SysTick counter relaod and current value are undefined at reset, the correct initializaton sequence for the SysTick counter is :
+1. Program reload value.
+2. Clear current value.
+3. Program Countrol and Status register.
+
+
+

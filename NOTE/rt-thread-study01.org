@@ -933,4 +933,339 @@ System control reigsters
 | 0xE000E018 | STCVR | RW clear | Unkndow    | SysTick Current Value Register      |
 | 0xE000E01C | STCR  | RO       | STCALIB    | SysTick Calibration Value Register  |
 
+《STM32F4xxx Cortex-M4 programming manual》
 
+4.5 SysTick timer (STK)
+
+The processor has a 24-bit system timer, SysTick, that counts down from the reload value to zero, reloads (wraps to) the value in the STK_LOAD register on the next clock edge, then counts down on subsequent clocks.
+
+When the processor is halted for debugging the counter does not decrement.
+
+| STK_CTRL SysTick control and status register |                                                                                  |
+|----------------------------------------------+----------------------------------------------------------------------------------|
+| COUNTFLAG                                    | Returns 1 if timer counted to 0 since last time this was read                    |
+| CLKSOURCE                                    | Clock source selection                                                           |
+|                                              | 0: AHB/8                                                                         |
+|                                              | 1: Processor clock (AHB)                                                         |
+| TICKINT                                      | SysTick exception request enable                                                 |
+|                                              | 0: Counting down to zero does not assert the SysTick excepton request            |
+|                                              | 1: Counting down to zero to asserts the SysTick exception request                |
+|                                              | Note:Software can use COUNTFLAG to determine if SysTick has ever counted to zero |
+| ENABLE                                       | Counter Enable                                                                   |
+|                                              | 0: Counter disabled                                                              |
+|                                              | 1: Counter enabled                                                               | 
+Enables the counter. When ENABLE is set to 1, the counter loads the RELOAD value from the LOAD register and then counts down.
+
+On reaching 0, it sets the COUNTFLAG to 1 and optionally asserts the SysTick depending on the value of TICKINT. 
+
+It then loads the RELOAD value again, and begins counting.  
+
+| STK_LOAD | SysTick reload value register                                                                             |
+|----------+-----------------------------------------------------------------------------------------------------------|
+| RELOAD   | RELOAD value                                                                                              |
+|          | The LOAD register specifies the start value to load into the STK_VAL register when the counter is enabled |
+|          | and when it reaches 0.                                                                                    |
+
+Calculating the RELOAD value
+
+The RELOAD value can be any value in the range 0x00000001-0x00FFFFFF. 
+
+A start value of 0 is possible, but has no effect because the SysTick exception request and COUNTFLAG are activated when count from 1 to 0.
+
+The RELOAD value is calculated according to its use:
+
+- To generato a multi-shot timer with a period of N processor clock cycles, use a RELOAD value of N-1. For example, if the SysTick interrupt is required every 100 clock pulses, set RELOAD to 99.
+
+- To deliver a single SysTick interrupt after a delay of N processor clock cycles, use a RELOAD of value N. For example, if a SysTick interrupt is required after 100 clock pulses, set RELOAD to 99.
+
+| STK_VAL | SysTick current value regiser |
+|---------+-------------------------------|
+| CURRENT | Current counter value         | 
+The VAL register contains the current value of the SysTick counter.
+
+Reads return the current value of the SysTick counter.
+
+A write of any value clears the field to 0, and also clears the COUNTFLAG bit in the STK_CTRL_register to 0.
+
+| STK_CALIB | SysTick calibration value register                                                                                |
+|-----------+-------------------------------------------------------------------------------------------------------------------|
+| NOREF     | NOREF flag.                                                                                                       |
+|           | Reads as zero. Indicates that a separate reference clock is provided. The frequency of this clock is HCLK/8       |
+| SKEW      | SKEW falg.                                                                                                        |
+|           | Indicates whether the TENMS value is exact.                                                                       |
+|           | Reads as one. Calibration value for the 1 ms inexact timing is not knownbecause TENMS is not known.               |
+|           | This can affect the suitablity of SysTick as a software real time clock.                                          |
+| TENMS     | Calibration value.                                                                                                |
+|           | Indicates the calibration value when the SysTick counter run on HCLK max/8 as external clock.                     |
+|           | The value is product denpendent, please refer to the Product Reference Manual, SysTick Calibration Value section. |
+|           | When HCLK is programmed at the maximum frequency, the SysTick period is 1ms.                                      |
+|           | If calibration information is not known,                                                                          |
+|           | calculate the calibration value required from the frequency of the processor clock or external clock.             |
+
+SysTick design hits and tips
+
+The SysTick counter runs on the processor clock.
+
+If this clock signal is stopped for low power mode, the SysTick couner stops.
+
+Ensure software uses aligned word accesses to access the SysTick registers.
+
+The SysTick counter relaod and current value are undefined at reset, the correct initializaton sequence for the SysTick counter is :
+1. Program reload value.
+2. Clear current value.
+3. Program Countrol and Status register.
+
+看完了数据手册，对应的看一下代码 =core_cm4.h=
+
+#+BEGIN_SRC c
+/* System Tick Configration
+   This function initialises the system tick timer and its interrupt and start the system tick tiemr.
+   Counter is in free running mode to generate periodical interrupts.
+ */
+static __INLINE uint32_t SysTick_Confit(uint32_t ticks)
+{
+    if (ticks > SysTick_LOAD_RELOAD_Msk) { /* Reload value impossible */
+        return(1);
+    }
+    SysTick->LOAD = (tick & SysTick_LOAD_RELOAD_Msk) - 1; /*set reload register*/
+    NVIC_SetPriority(SysTick_IRQn, (1<<__NVIC_PRIO_BITS)-1);/*set Priority for Coterx-M0 System Interrupts*/
+    SysTick->VAL = 0;
+    SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk |
+                    SysTick_CTRL_TICKINT_Msk   |
+                    SysTick_CTRL_ENABLE_Msk; /*Enable SysTick IRQ and SysTick Timer*/
+}
+#+END_SRC
+
+#+BEGIN_SRC c
+/*SysTick Reload Register Definitions*/
+#define SysTick_LOAD_RELOAD_Pos 0                                     /*SysTick LOAD: RELOAD Position*/
+#define SysTick_LOAD_RELOAD_Msk (0xFFFFFFUL<<SysTick_LOAD_RELOAD_Pos) /*SysTick LOAD: RELOAD Mask*/
+#+END_SRC
+
+基本上做的事情是： 
+
+先赋值，设置中断，清零，设置控制位
+
+这个 =SysTick_IRQn= 在stm32f4xx.h里面
+
+typedef enum IRQn-> =SysTick_IRQn= = -1 /*Cortex-M4 System Tick Interrupt*/
+
+然后让我们跟踪一下这个中断吧
+
+=startup_stm32f4xx.s= 里面写到
+#+BEGIN_SRC asm
+DCD SysTick_Handler
+
+SysTick_Handler PROC
+                EXPORT SysTick_Handler [WEAK]
+		B      .
+                ENDP
+#+END_SRC
+
+实现在board.c里面
+#+BEGIN_SRC c
+void SytTick_Handler(void)
+{
+    rt_interrupt_enter();
+    rt_tick_increase();
+    rt_interrupt_leave();
+}
+#+END_SRC
+
+#+BEGIN_SRC c
+void rt_tick_increase(void)
+{
+    struct rt_thread *thread; //定义一个线程结构体
+
+    ++rt_tick; //这是一个静态全局变量，应该是用来存tick计数的
+
+    thread = tr_thread_self(); //获取当前在运行的线程
+
+    -- thread->remainning_tick; //线程剩余时间减少
+    if (thread->remaining_tick == 0) { //看看是不是减少到零了
+        thread->remaining_tick = thread->init_tick; //准备重新开始
+	rt_thread_yield(); //主动让出CPU
+    }
+    rt_timer_check(); //timer.c 检查timer list，如果一个超时事件发生，相关的超时函数将会被调用
+                      // 这个函数应该在操作系统时间中断内被调用                                                           
+}
+#+END_SRC
+
+timer.c
+#+BEGIN_SRC c
+void rt_timer_check(void)
+{
+    struct rt_timer *t;
+    rt_tick_t current_tick;
+    register rt_base_t level;
+
+    current_tick = rt_tick_get();
+
+    /*disable interrupt*/
+    level = rt_hw_interrupt_disable();
+
+    while(!rt_list_isempty(&rt_timer_list)) {
+        t = rt_list_entry(rt_timer_list.next, struct rt_timer, list);
+
+	/*
+	    It supposes that the new tick shall less than the half duration ofo tick max.
+	*/
+	if ((current_tick - t->timeout_tick) < RT_TICK_MAX/2) {
+	    RT_OBJECT_HOOK_CALL(rt_timer_timeout_hook, (t));
+
+	    /*remove timer from timer list firstly*/
+	    rt_list_remove(&(t->list));
+
+	    /*call timeout fucntion */
+	    t->timeout_func(t->parameter);
+
+	    /*re-get tick*/
+	    current_tick = rt_tick_get();
+	    
+	    if ((t->parent.flag & RT_TIMER_FLAG_PERIODIC) && 
+                (t->parent.flag & RT_TIMER_FLAG_ACTIVATED)) {
+	        /*start it*/
+		t->parent.flag &= ~RT_TIMER_FLAG_ACTIVATED;
+		rt_timer_start(t);
+	    } else {
+	        /*stop timer*/
+	        t->parent.flag &= ~RT_TIMER_FLAG_ACTIVATED;
+	    }
+        } else 
+	    break;
+    }
+    
+    /* enable interrupt */
+    rt_hw_interrupt_enable(level);
+}
+#+END_SRC
+
+牵一发而动全身，现在又从硬件寄存器的控制转移到该死的链表操作里面去了。
+
+现在模糊的理解了定时器是怎么集成到操作系统里面去的。
+
+在每个线程被初始化的时候，都会产生一个以线程名字命名的定时器。
+
+而系统的SysTick定时器是已经在运行中的了，每隔一定的时间就会产生硬件中断，然后执行中断服务程序，遍历所有的定时器链表，修改当前线程的timeout值。
+
+而我们知道，线程的调度是通过优先级和时间片共同的作用来的。因此……是不是我们可以先看一下优先级所起到的作用。
+
+* 线程 优先级
+
+线程的优先级被定义在rtdef.h中
+#+BEGIN_SRC c
+/*thread state definitions*/
+#define RT_THREAD_INIT        0x00                 // 初始状态 线程不参与调度
+#define RT_THREAD_READY       0x01                 // 就绪状态 
+#define RT_THREAD_SUSPEND     0x02                 // 挂起状态 线程不参与调度 
+#define RT_THREAD_RUNNING     0x03                 // 运行状态
+#define RT_THREAD_BLOCK       RT_THREAD_SUSPEND    // 阻塞状态 线程不参与调度
+#define RT_THREAD_CLOSE       0x04                 // 关闭状态 线程不参与调度
+#+END_SRC
+
+** RT_THREAD_INIT
+只有在 =_rt_thread_init= 函数里面将thread->stat赋值为 =RT_THREAD_INIT=
+
+** RT_THREAD_READY
+在 =rt_schedule_insert_thread= 函数中改变状态
+
+** RT_THREAD_SUSPEND
+=rt_thread_startup= 函数将挂起线程
+
+=rt_thread_suspend= 函数会挂起线程
+
+** RT_THREAD_RUNNING
+都没搜到哪里用到了
+
+** RT_THREAD_BLOCK
+也没有地方用到
+
+** RT_THREAD_CLOSE
+=rt_thread_exit= 函数会关闭线程
+
+=rt_thread_detach= 函数会关闭线程
+
+=rt_thread_delete= 函数会关闭线程
+
+** kernel如何找到当前优先级最高的线程的
+
+blog.csdn.net/prife/articale/details/7077120 文章中 Prife写的非常的详尽和清楚明白
+
+主要是进行了位图调度算法分析
+
+先说白了就是一个哈希表+双向链表的结构，不过这个哈希表是个位图，也就是个二位数组，映射起来很方便。
+
+rt-thread的调度算法是基于优先级和时间片的，时间片部分前面大概分析了以下，不过还不是很清晰。
+
+优先级这部分，通过上面的文章介绍，倒是很清晰了。很感谢Prife开放自己的思想。
+
+这个问题可以这么描述：
+
+现在有一堆优先级不同的线程，优先级是一个数，这个数越小表示这个线程的优先级越高，现在要用一种简单的方法来找出来这一堆线程里面谁的优先级最高。
+
+现在定义了一个数组
+#+BEGIN_SRC c
+rt_list_t rt_thread_priority_table[RT_THREAD_PRIORITY_MAX];
+#+END_SRC
+这里 =RT_THREAD_PRIORITY_MAX= 的值为256，表示有256个优先级
+
+这个优先级数组里面的内容都是链表的节点，只要知道了某个优先级，那么就可以直接指向对应的线程入口了。
+
+优先级数值越小的优先级别越高，因此，这个问题可以变成，找出数组中第一个非空的元素
+#+BEGIN_SRC c
+for (i=0; i<256; i++) {
+    if (rt_thread_priority_table[i] != NULL) 
+        break;
+}
+highest_ready_priority = i; //最高优先级
+#+END_SRC
+
+=我们需要寻找一种执行时间恒定的算法=
+
+首先来考虑，每一个优先级上是否存在线程，这是一个是/否问题
+
+要么存在，要么不存在，因此可以用一个bit来表示
+
+1表示存在线程，0表示不存在线程
+
+对于256个优先级需要256bit。
+
+因此我们定义一个32字节长的数组
+#+BEGIN_SRC c
+rt_uint8_t rt_thread_ready_table[32];
+#+END_SRC
+
+现在的约定是，这32个byte就是256bit，和256个线程的优先级是一一对应的。
+
+每个字节的最高位为bit7,最低位为bit0,用bit0表示更高的优先级，bit7表示稍低的优先级。
+
+这会形成一个位图：
+|        | bit7 | bit6 | bit5 | bit4 | bit3 | bit2 | bit1 | bit0 |
+|--------+------+------+------+------+------+------+------+------|
+| byte0  |  007 |  006 |  005 |  004 |  003 |  002 |  001 |  000 |
+| byte1  |  015 |  014 |  013 |  012 |  011 |  010 |  009 |  008 |
+| ...    |      |      |      |      |      |      |      |      |
+| byte32 |  255 |  254 |  253 |  252 |  251 |  250 |  249 | 248  | 
+
+对于一个优先级是125的线程，在它的状态变为READY的时候，就会改变这个数组对应的字节的对应的位。
+
+对应关系是125/8=15(字节), 125%8=5(位)
+
+现在我们面临的问题是，寻找优先级最高的线程的问题，就变成了，从位图中找出第一个为1的bit的位置。
+
+比如有A,B,C三个线程，优先级分别为A-5,B-25,C-125，那么位图中的BIT5,BIT25,BIT125就分别为1.
+
+我们需要找出来的就是BIT5.
+
+简单的算法
+#+BEGIN_SRC c
+for(i=0; i<32; i++) {
+    for(j=0; j<8; j++) {
+        if(rt_thread_priority_table[i] & (1<<j))
+	    break;//找到最低位为1的bit的位置
+    }
+    highest_ready_priority = i*8+j;//最高优先级
+}
+#+END_SRC
+
+依然，循环不是个节约时间的算法,那么就要想别的方法
