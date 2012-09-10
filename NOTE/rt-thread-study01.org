@@ -1163,24 +1163,24 @@ void rt_timer_check(void)
 #define RT_THREAD_CLOSE       0x04                 // 关闭状态 线程不参与调度
 #+END_SRC
 
-** RT_THREAD_INIT
+** =RT_THREAD_INIT=
 只有在 =_rt_thread_init= 函数里面将thread->stat赋值为 =RT_THREAD_INIT=
 
-** RT_THREAD_READY
+** =RT_THREAD_READY=
 在 =rt_schedule_insert_thread= 函数中改变状态
 
-** RT_THREAD_SUSPEND
+** =RT_THREAD_SUSPEND=
 =rt_thread_startup= 函数将挂起线程
 
 =rt_thread_suspend= 函数会挂起线程
 
-** RT_THREAD_RUNNING
+** =RT_THREAD_RUNNING=
 都没搜到哪里用到了
 
-** RT_THREAD_BLOCK
+** =RT_THREAD_BLOCK=
 也没有地方用到
 
-** RT_THREAD_CLOSE
+** =RT_THREAD_CLOSE=
 =rt_thread_exit= 函数会关闭线程
 
 =rt_thread_detach= 函数会关闭线程
@@ -1203,69 +1203,151 @@ rt-thread的调度算法是基于优先级和时间片的，时间片部分前�
 
 现在有一堆优先级不同的线程，优先级是一个数，这个数越小表示这个线程的优先级越高，现在要用一种简单的方法来找出来这一堆线程里面谁的优先级最高。
 
-现在定义了一个数组
+现在先要定义一个数组来表示优先级
 #+BEGIN_SRC c
 rt_list_t rt_thread_priority_table[RT_THREAD_PRIORITY_MAX];
 #+END_SRC
-这里 =RT_THREAD_PRIORITY_MAX= 的值为256，表示有256个优先级
+这其中 =RT_THREAD_PRIORITY_MAX= = 256
 
-这个优先级数组里面的内容都是链表的节点，只要知道了某个优先级，那么就可以直接指向对应的线程入口了。
+我们的目的在于找出当前最高的优先级是多少来，然后根据 =rt_thread_priority_table[最高优先级]= 来找到对应的进程。
 
-优先级数值越小的优先级别越高，因此，这个问题可以变成，找出数组中第一个非空的元素
+实际的代码是
 #+BEGIN_SRC c
-for (i=0; i<256; i++) {
-    if (rt_thread_priority_table[i] != NULL) 
-        break;
-}
-highest_ready_priority = i; //最高优先级
+to_thread = rt_list_entry(rt_thread_priority_table[highest_ready_priority].next, xxxx);
 #+END_SRC
+因此，如何确定 =hightest_ready_priorit= 就关键了
 
-=我们需要寻找一种执行时间恒定的算法=
+这里存在这么一个问题，如果使用for循环是肯定可以找到的，不过时间消耗没有办法确定，我们需要的是一个时间消耗恒定的算法。
 
-首先来考虑，每一个优先级上是否存在线程，这是一个是/否问题
+因此，就想，不就是256个优先级么，当前这个优先级上要不有ready进程，要不没有。
 
-要么存在，要么不存在，因此可以用一个bit来表示
+因此，可以用一个256bits的数来表示，bit为1就表示这一个级别的优先级上有ready进程，否则，就是空的。
 
-1表示存在线程，0表示不存在线程
-
-对于256个优先级需要256bit。
-
-因此我们定义一个32字节长的数组
+从C语言的角度来看，定义一个数组来表示比较合适
 #+BEGIN_SRC c
 rt_uint8_t rt_thread_ready_table[32];
 #+END_SRC
 
-现在的约定是，这32个byte就是256bit，和256个线程的优先级是一一对应的。
+为什么是uint8也就是8位的呢，因为，8位的的确是比较好算，好处理。
 
-每个字节的最高位为bit7,最低位为bit0,用bit0表示更高的优先级，bit7表示稍低的优先级。
+这样相当于给256个bit分了32组，每组8个优先级。
 
-这会形成一个位图：
-|        | bit7 | bit6 | bit5 | bit4 | bit3 | bit2 | bit1 | bit0 |
-|--------+------+------+------+------+------+------+------+------|
-| byte0  |  007 |  006 |  005 |  004 |  003 |  002 |  001 |  000 |
-| byte1  |  015 |  014 |  013 |  012 |  011 |  010 |  009 |  008 |
-| ...    |      |      |      |      |      |      |      |      |
-| byte32 |  255 |  254 |  253 |  252 |  251 |  250 |  249 | 248  | 
+现在，我们就单独的只看8个优先级，这8个bit。
 
-对于一个优先级是125的线程，在它的状态变为READY的时候，就会改变这个数组对应的字节的对应的位。
+8个bit可以形成一个byte。它的取值范围是0x00到0xFF。
 
-对应关系是125/8=15(字节), 125%8=5(位)
+为什么这么说，因为，每当新建一个进程的时候，都会赋予它一个优先级，对应的，这个byte对应的位就要置1。
 
-现在我们面临的问题是，寻找优先级最高的线程的问题，就变成了，从位图中找出第一个为1的bit的位置。
+比如，现在有A,B,C三个进程，优先级分别为1，3，4，则，这个byte=0b00011010=26=0x1a。
 
-比如有A,B,C三个线程，优先级分别为A-5,B-25,C-125，那么位图中的BIT5,BIT25,BIT125就分别为1.
+这也是为什么我们用8位来解释问题，因为32位所代表的数实在是太大了，2^32=4G，没法表示～(这里说的是 =rt_thread_ready_priority_group= 这个32位的数)
 
-我们需要找出来的就是BIT5.
+这32位表示了 =rt_thread_ready_table= 的32个组。这样考虑的，以8位为单位进行最小位图的展开，这样相当于形成了一个二级的映射关系。
 
-简单的算法
+256bit---->32group---->8bit位图
+
+把这0x00~0xFF表示成一个数
+
+那么，这8位优先级中找到最高的优先级的问题，就变成了，这个数里面最低位为1的问题。
+
+是这么理解的：
+
+| bit7 | bit6 | bit5 | bit4 | bit3 | bit2 | bit1 | bit0 | 十进制 | 最高优先级 |
+|------+------+------+------+------+------+------+------+--------+------------|
+|    0 |    0 |    0 |    0 |    0 |    0 |    0 |    0 |      0 |          0 |
+|    0 |    0 |    0 |    0 |    0 |    0 |    0 |    1 |      1 |          0 |
+|    0 |    0 |    0 |    0 |    0 |    0 |    1 |    0 |      2 |          1 |
+|    0 |    0 |    0 |    0 |    0 |    0 |    1 |    1 |      3 |          0 |
+|   .. |   .. |   .. |   .. |   .. |   .. |   .. |   .. |     .. |         .. |
+|    1 |    1 |    1 |    1 |    1 |    1 |    1 |    1 |    255 |          0 |
+
+研究一下上表，会发现，可以事先确定出来，最高优先级是几。
+
+因此可以得到一个数组
 #+BEGIN_SRC c
-for(i=0; i<32; i++) {
-    for(j=0; j<8; j++) {
-        if(rt_thread_priority_table[i] & (1<<j))
-	    break;//找到最低位为1的bit的位置
-    }
-    highest_ready_priority = i*8+j;//最高优先级
-}
+const rt_uint8_t rt_lowest_bitmap[] =
+{
+    /* 00 */ 0, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    /* 10 */ 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    /* 20 */ 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    /* 30 */ 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    /* 40 */ 6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    /* 50 */ 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    /* 60 */ 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    /* 70 */ 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    /* 80 */ 7, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    /* 90 */ 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    /* A0 */ 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    /* B0 */ 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    /* C0 */ 6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    /* D0 */ 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    /* E0 */ 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    /* F0 */ 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+};
 #+END_SRC
 
-依然，循环不是个节约时间的算法,那么就要想别的方法
+那，我们看看，进程在创建的时候，优先级是怎么来影响个个变量的呢
+
+#+BEGIN_SRC c
+// 一开始的时候，要用到thread结构体
+thread->init_priority = priority;
+// 在starup函数里面，转换优先级，纯数学
+thread->number = thread->current_priority >> 3; //相当于prioroity/8取得落在哪一个组里面
+thread->number_mask = 1L << thread_number; 
+thread->high_mask = 1L << (thread->current_priority & 0x07); //相当于priority%8，余数，取的这一个组中，8bit中的第几位
+// 置一的目的在于方便位操作
+// insert进程的时候置位
+rt_thread_ready_table[thread->number] |= thread->high_mask; // 对应组中的对应位，置一
+rt_thread_ready_priority_group |= thread->number_mask; // 对应组中的标记，置一
+#+END_SRC
+
+现在可以看出来， =rt_thread_ready_table[]= 是对256个优先级的一一映射。
+
+而 =rt_thread_ready_priority_group= 是对这个表的一个抽象，分组。
+
+看到这儿，我觉得我可以理解schedule的代码了
+
+256位的十六进制就是0xFFFF FFFF。
+
+主要使用 =rt_thread_ready_priority_group= 来进行操作，每次比较8位，相当于把32个组又分成了8x4份来进行比较。
+
+因此，会有
+#+BEGIN_SRC c
+rt_thread_ready_priority_group & 0x000000FF
+rt_thread_ready_priority_group & 0x0000FF00
+rt_thread_ready_priority_group & 0x00FF0000
+rt_thread_ready_priority_group & 0xFF000000
+#+END_SRC
+这样的代码比较，主要是比较出来，哪8位的里面有1的存在，而且是从低位到高位比较的，这样，也遵循了低位表示高优先级的原则
+
+假设0xff的就中了，那么
+#+BEGIN_SRC c
+number = rt_lowest_bitmap[rt_thread_ready_priority_group & 0xff];
+#+END_SRC
+就表示了，在这8位中，查表，得到了，最低优先级的位数，赋值给number。此时number表示，在32个组中，第几个组里面有最后的结果。
+
+然后这个组里的第几位要通过
+#+BEGIN_SRC c
+rt_lowest_bitmap[rt_thread_ready_table[number]]; 
+#+END_SRC
+来查表，找出了，具体的第几位。
+
+最后再把它们拼接起来，所以就有了
+#+BEGIN_SRC c
+highest_ready_priority = (number << 3) + rt_lowest_bitmap[rt_thread_ready_table[number]]
+#+END_SRC
+
+整个相当于查了四次表
+- 第一次： =rt_thread_ready_priority_group= 中第几组8位中存在1
+- 第二次： 这个8位的组中，最低位是1的是第几位,代表了32个组中第几个组中有最高优先级
+- 第三次： =rt_thread_ready_table= 中这一组中的内容取出来
+- 第四次： 再用一边 =rt_lowest_bitmap= 的查表，确认这一组中第几位是1，表示了最高优先级
+最后把“组信息“和“组内的位信息“还原回表示整个256位中第几位的数值
+
+一个先抽象运算再还原结果的过程。其中这个 =rt_lowest_bitmap= 的位图被使用了两次，算法是一样的，其意义是不一样的。
+
+虽然都是为了找8位中最低位为1的位数，只是，这个位数所表示的含义是不一样的。
+
+通过这一系列的折腾，就找到了当前最高的优先级的进程，而且是在ready队列里面的，接下来就准备调用它了。
+
+不在ready队列里面的是不会被调度的。

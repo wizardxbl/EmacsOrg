@@ -1,0 +1,9 @@
+#+AUTHOR: Wizard.Yang
+#+EMAIL: xblandy@gmail.com
+#+TITLE: rt-thread之realtouch 学习笔记 02
+#+TEXT: 学习一下线程间同步与通信
+#+OPTIONS: creator:nil
+
+
+
+

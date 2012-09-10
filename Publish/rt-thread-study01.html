@@ -6,7 +6,7 @@ lang="en" xml:lang="en">
 <title>rt-thread之realtouch 学习笔记 01</title>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2012-09-06 17:20:37 CST"/>
+<meta name="generated" content="2012-09-10 14:10:12 CST"/>
 <meta name="author" content="Wizard.Yang"/>
 <style type="text/css">
  <!--/*--><![CDATA[/*><!--*/
@@ -95,6 +95,17 @@ lang="en" xml:lang="en">
 <li><a href="#sec-3">3 优先级探索 </a></li>
 <li><a href="#sec-4">4 发现DEBUG </a></li>
 <li><a href="#sec-5">5 定时器 SysTick </a></li>
+<li><a href="#sec-6">6 线程 优先级 </a>
+<ul>
+<li><a href="#sec-6.1">6.1 <code>RT_THREAD_INIT</code> </a></li>
+<li><a href="#sec-6.2">6.2 <code>RT_THREAD_READY</code> </a></li>
+<li><a href="#sec-6.3">6.3 <code>RT_THREAD_SUSPEND</code> </a></li>
+<li><a href="#sec-6.4">6.4 <code>RT_THREAD_RUNNING</code> </a></li>
+<li><a href="#sec-6.5">6.5 <code>RT_THREAD_BLOCK</code> </a></li>
+<li><a href="#sec-6.6">6.6 <code>RT_THREAD_CLOSE</code> </a></li>
+<li><a href="#sec-6.7">6.7 kernel如何找到当前优先级最高的线程的 </a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -1463,11 +1474,722 @@ System control reigsters
 </tbody>
 </table>
 
+
+<p>
+《STM32F4xxx Cortex-M4 programming manual》
+</p>
+<p>
+4.5 SysTick timer (STK)
+</p>
+<p>
+The processor has a 24-bit system timer, SysTick, that counts down from the reload value to zero, reloads (wraps to) the value in the STK<sub>LOAD</sub> register on the next clock edge, then counts down on subsequent clocks.
+</p>
+<p>
+When the processor is halted for debugging the counter does not decrement.
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>STK<sub>CTRL</sub> SysTick control and status register</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>COUNTFLAG</td><td>Returns 1 if timer counted to 0 since last time this was read</td></tr>
+<tr><td>CLKSOURCE</td><td>Clock source selection</td></tr>
+<tr><td></td><td>0: AHB/8</td></tr>
+<tr><td></td><td>1: Processor clock (AHB)</td></tr>
+<tr><td>TICKINT</td><td>SysTick exception request enable</td></tr>
+<tr><td></td><td>0: Counting down to zero does not assert the SysTick excepton request</td></tr>
+<tr><td></td><td>1: Counting down to zero to asserts the SysTick exception request</td></tr>
+<tr><td></td><td>Note:Software can use COUNTFLAG to determine if SysTick has ever counted to zero</td></tr>
+<tr><td>ENABLE</td><td>Counter Enable</td></tr>
+<tr><td></td><td>0: Counter disabled</td></tr>
+<tr><td></td><td>1: Counter enabled</td></tr>
+</tbody>
+</table>
+
+Enables the counter. When ENABLE is set to 1, the counter loads the RELOAD value from the LOAD register and then counts down.
+
+<p>
+On reaching 0, it sets the COUNTFLAG to 1 and optionally asserts the SysTick depending on the value of TICKINT. 
+</p>
+<p>
+It then loads the RELOAD value again, and begins counting.  
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>STK<sub>LOAD</sub></th><th>SysTick reload value register</th></tr>
+</thead>
+<tbody>
+<tr><td>RELOAD</td><td>RELOAD value</td></tr>
+<tr><td></td><td>The LOAD register specifies the start value to load into the STK<sub>VAL</sub> register when the counter is enabled</td></tr>
+<tr><td></td><td>and when it reaches 0.</td></tr>
+</tbody>
+</table>
+
+
+<p>
+Calculating the RELOAD value
+</p>
+<p>
+The RELOAD value can be any value in the range 0x00000001-0x00FFFFFF. 
+</p>
+<p>
+A start value of 0 is possible, but has no effect because the SysTick exception request and COUNTFLAG are activated when count from 1 to 0.
+</p>
+<p>
+The RELOAD value is calculated according to its use:
+</p>
+<ul>
+<li>
+To generato a multi-shot timer with a period of N processor clock cycles, use a RELOAD value of N-1. For example, if the SysTick interrupt is required every 100 clock pulses, set RELOAD to 99.
+
+</li>
+<li>
+To deliver a single SysTick interrupt after a delay of N processor clock cycles, use a RELOAD of value N. For example, if a SysTick interrupt is required after 100 clock pulses, set RELOAD to 99.
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>STK<sub>VAL</sub></th><th>SysTick current value regiser</th></tr>
+</thead>
+<tbody>
+<tr><td>CURRENT</td><td>Current counter value</td></tr>
+</tbody>
+</table>
+
+</li>
+</ul>
+
+<p>The VAL register contains the current value of the SysTick counter.
+</p>
+<p>
+Reads return the current value of the SysTick counter.
+</p>
+<p>
+A write of any value clears the field to 0, and also clears the COUNTFLAG bit in the STK<sub>CTRL</sub><sub>register</sub> to 0.
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>STK<sub>CALIB</sub></th><th>SysTick calibration value register</th></tr>
+</thead>
+<tbody>
+<tr><td>NOREF</td><td>NOREF flag.</td></tr>
+<tr><td></td><td>Reads as zero. Indicates that a separate reference clock is provided. The frequency of this clock is HCLK/8</td></tr>
+<tr><td>SKEW</td><td>SKEW falg.</td></tr>
+<tr><td></td><td>Indicates whether the TENMS value is exact.</td></tr>
+<tr><td></td><td>Reads as one. Calibration value for the 1 ms inexact timing is not knownbecause TENMS is not known.</td></tr>
+<tr><td></td><td>This can affect the suitablity of SysTick as a software real time clock.</td></tr>
+<tr><td>TENMS</td><td>Calibration value.</td></tr>
+<tr><td></td><td>Indicates the calibration value when the SysTick counter run on HCLK max/8 as external clock.</td></tr>
+<tr><td></td><td>The value is product denpendent, please refer to the Product Reference Manual, SysTick Calibration Value section.</td></tr>
+<tr><td></td><td>When HCLK is programmed at the maximum frequency, the SysTick period is 1ms.</td></tr>
+<tr><td></td><td>If calibration information is not known,</td></tr>
+<tr><td></td><td>calculate the calibration value required from the frequency of the processor clock or external clock.</td></tr>
+</tbody>
+</table>
+
+
+<p>
+SysTick design hits and tips
+</p>
+<p>
+The SysTick counter runs on the processor clock.
+</p>
+<p>
+If this clock signal is stopped for low power mode, the SysTick couner stops.
+</p>
+<p>
+Ensure software uses aligned word accesses to access the SysTick registers.
+</p>
+<p>
+The SysTick counter relaod and current value are undefined at reset, the correct initializaton sequence for the SysTick counter is :
+</p><ol>
+<li>
+Program reload value.
+</li>
+<li>
+Clear current value.
+</li>
+<li>
+Program Countrol and Status register.
+
+</li>
+</ol>
+
+<p>看完了数据手册，对应的看一下代码 <code>core_cm4.h</code>
+</p>
+
+
+
+<pre class="src src-c">
+<span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">System Tick Configration
+   This function initialises the system tick timer and its interrupt and start the system tick tiemr.
+   Counter is in free running mode to generate periodical interrupts.
+ </span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #add8e6; font-weight: bold;">static</span> __INLINE <span style="color: #9acd32; font-weight: bold;">uint32_t</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">SysTick_Confit</span>(<span style="color: #9acd32; font-weight: bold;">uint32_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">ticks</span>)
+{
+    <span style="color: #add8e6; font-weight: bold;">if</span> (ticks &gt; SysTick_LOAD_RELOAD_Msk) { <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">Reload value impossible </span><span style="color: #cccccc; font-style: italic;">*/</span>
+        <span style="color: #add8e6; font-weight: bold;">return</span>(1);
+    }
+    SysTick-&gt;LOAD = (tick &amp; SysTick_LOAD_RELOAD_Msk) - 1; <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">set reload register</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    NVIC_SetPriority(SysTick_IRQn, (1&lt;&lt;__NVIC_PRIO_BITS)-1);<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">set Priority for Coterx-M0 System Interrupts</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    SysTick-&gt;VAL = 0;
+    SysTick-&gt;CTRL = SysTick_CTRL_CLKSOURCE_Msk |
+                    SysTick_CTRL_TICKINT_Msk   |
+                    SysTick_CTRL_ENABLE_Msk; <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">Enable SysTick IRQ and SysTick Timer</span><span style="color: #cccccc; font-style: italic;">*/</span>
+}
+</pre>
+
+
+
+
+
+<pre class="src src-c">
+<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">SysTick Reload Register Definitions</span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">SysTick_LOAD_RELOAD_Pos</span> 0                                     <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">SysTick LOAD: RELOAD Position</span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">SysTick_LOAD_RELOAD_Msk</span> (0xFFFFFFUL&lt;&lt;SysTick_LOAD_RELOAD_Pos) <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">SysTick LOAD: RELOAD Mask</span><span style="color: #cccccc; font-style: italic;">*/</span>
+</pre>
+
+
+
+
+<p>
+基本上做的事情是： 
+</p>
+<p>
+先赋值，设置中断，清零，设置控制位
+</p>
+<p>
+这个 <code>SysTick_IRQn</code> 在stm32f4xx.h里面
+</p>
+<p>
+typedef enum IRQn-&gt; <code>SysTick_IRQn</code> = -1 <i>*Cortex-M4 System Tick Interrupt*</i>
+</p>
+<p>
+然后让我们跟踪一下这个中断吧
+</p>
+<p>
+<code>startup_stm32f4xx.s</code> 里面写到
+</p>
+
+
+<pre class="src src-asm">
+<span style="color: #ffff00; font-weight: bold; font-style: italic;">DCD</span> <span style="color: #add8e6; font-weight: bold;">SysTick</span>_Handler
+
+<span style="color: #ffff00; font-weight: bold; font-style: italic;">SysTick_Handler</span> <span style="color: #add8e6; font-weight: bold;">PROC</span>
+                <span style="color: #add8e6; font-weight: bold;">EXPORT</span> SysTick_Handler [WEAK]
+                <span style="color: #add8e6; font-weight: bold;">B</span>      .
+                <span style="color: #add8e6; font-weight: bold;">ENDP</span>
+</pre>
+
+
+
+
+<p>
+实现在board.c里面
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">SytTick_Handler</span>(<span style="color: #9acd32; font-weight: bold;">void</span>)
+{
+    rt_interrupt_enter();
+    rt_tick_increase();
+    rt_interrupt_leave();
+}
+</pre>
+
+
+
+
+
+<pre class="src src-c">
+<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">rt_tick_increase</span>(<span style="color: #9acd32; font-weight: bold;">void</span>)
+{
+    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_thread</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">thread</span>; <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#23450;&#20041;&#19968;&#20010;&#32447;&#31243;&#32467;&#26500;&#20307;
+</span>
+    ++rt_tick; <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#36825;&#26159;&#19968;&#20010;&#38745;&#24577;&#20840;&#23616;&#21464;&#37327;&#65292;&#24212;&#35813;&#26159;&#29992;&#26469;&#23384;tick&#35745;&#25968;&#30340;
+</span>
+    thread = tr_thread_self(); <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#33719;&#21462;&#24403;&#21069;&#22312;&#36816;&#34892;&#30340;&#32447;&#31243;
+</span>
+    -- thread-&gt;remainning_tick; <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#21097;&#20313;&#26102;&#38388;&#20943;&#23569;
+</span>    <span style="color: #add8e6; font-weight: bold;">if</span> (thread-&gt;remaining_tick == 0) { <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#30475;&#30475;&#26159;&#19981;&#26159;&#20943;&#23569;&#21040;&#38646;&#20102;
+</span>        thread-&gt;remaining_tick = thread-&gt;init_tick; <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#20934;&#22791;&#37325;&#26032;&#24320;&#22987;
+</span>        rt_thread_yield(); <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#20027;&#21160;&#35753;&#20986;CPU
+</span>    }
+    rt_timer_check(); <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">timer.c &#26816;&#26597;timer list&#65292;&#22914;&#26524;&#19968;&#20010;&#36229;&#26102;&#20107;&#20214;&#21457;&#29983;&#65292;&#30456;&#20851;&#30340;&#36229;&#26102;&#20989;&#25968;&#23558;&#20250;&#34987;&#35843;&#29992;
+</span>                      <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#36825;&#20010;&#20989;&#25968;&#24212;&#35813;&#22312;&#25805;&#20316;&#31995;&#32479;&#26102;&#38388;&#20013;&#26029;&#20869;&#34987;&#35843;&#29992;                                                           
+</span>}
+</pre>
+
+
+
+
+<p>
+timer.c
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">rt_timer_check</span>(<span style="color: #9acd32; font-weight: bold;">void</span>)
+{
+    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_timer</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">t</span>;
+    <span style="color: #9acd32; font-weight: bold;">rt_tick_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">current_tick</span>;
+    <span style="color: #add8e6; font-weight: bold;">register</span> <span style="color: #9acd32; font-weight: bold;">rt_base_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">level</span>;
+
+    current_tick = rt_tick_get();
+
+    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">disable interrupt</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    level = rt_hw_interrupt_disable();
+
+    <span style="color: #add8e6; font-weight: bold;">while</span>(!rt_list_isempty(&amp;rt_timer_list)) {
+        t = rt_list_entry(rt_timer_list.next, <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_timer</span>, list);
+
+        <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">
+            It supposes that the new tick shall less than the half duration ofo tick max.
+        </span><span style="color: #cccccc; font-style: italic;">*/</span>
+        <span style="color: #add8e6; font-weight: bold;">if</span> ((current_tick - t-&gt;timeout_tick) &lt; RT_TICK_MAX/2) {
+            RT_OBJECT_HOOK_CALL(rt_timer_timeout_hook, (t));
+
+            <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">remove timer from timer list firstly</span><span style="color: #cccccc; font-style: italic;">*/</span>
+            rt_list_remove(&amp;(t-&gt;list));
+
+            <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">call timeout fucntion </span><span style="color: #cccccc; font-style: italic;">*/</span>
+            t-&gt;timeout_func(t-&gt;parameter);
+
+            <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">re-get tick</span><span style="color: #cccccc; font-style: italic;">*/</span>
+            current_tick = rt_tick_get();
+            
+            <span style="color: #add8e6; font-weight: bold;">if</span> ((t-&gt;parent.flag &amp; RT_TIMER_FLAG_PERIODIC) &amp;&amp; 
+                (t-&gt;parent.flag &amp; RT_TIMER_FLAG_ACTIVATED)) {
+                <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">start it</span><span style="color: #cccccc; font-style: italic;">*/</span>
+                t-&gt;parent.flag &amp;= ~RT_TIMER_FLAG_ACTIVATED;
+                rt_timer_start(t);
+            } <span style="color: #add8e6; font-weight: bold;">else</span> {
+                <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">stop timer</span><span style="color: #cccccc; font-style: italic;">*/</span>
+                t-&gt;parent.flag &amp;= ~RT_TIMER_FLAG_ACTIVATED;
+            }
+        } <span style="color: #add8e6; font-weight: bold;">else</span> 
+            <span style="color: #add8e6; font-weight: bold;">break</span>;
+    }
+    
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">enable interrupt </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    rt_hw_interrupt_enable(level);
+}
+</pre>
+
+
+
+
+<p>
+牵一发而动全身，现在又从硬件寄存器的控制转移到该死的链表操作里面去了。
+</p>
+<p>
+现在模糊的理解了定时器是怎么集成到操作系统里面去的。
+</p>
+<p>
+在每个线程被初始化的时候，都会产生一个以线程名字命名的定时器。
+</p>
+<p>
+而系统的SysTick定时器是已经在运行中的了，每隔一定的时间就会产生硬件中断，然后执行中断服务程序，遍历所有的定时器链表，修改当前线程的timeout值。
+</p>
+<p>
+而我们知道，线程的调度是通过优先级和时间片共同的作用来的。因此……是不是我们可以先看一下优先级所起到的作用。
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-6" class="outline-2">
+<h2 id="sec-6">6 线程 优先级 </h2>
+<div id="text-6">
+
+
+<p>
+线程的优先级被定义在rtdef.h中
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">thread state definitions</span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">RT_THREAD_INIT</span>        0x00                 <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#21021;&#22987;&#29366;&#24577; &#32447;&#31243;&#19981;&#21442;&#19982;&#35843;&#24230;
+</span><span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">RT_THREAD_READY</span>       0x01                 <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#23601;&#32490;&#29366;&#24577; 
+</span><span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">RT_THREAD_SUSPEND</span>     0x02                 <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#25346;&#36215;&#29366;&#24577; &#32447;&#31243;&#19981;&#21442;&#19982;&#35843;&#24230; 
+</span><span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">RT_THREAD_RUNNING</span>     0x03                 <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#36816;&#34892;&#29366;&#24577;
+</span><span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">RT_THREAD_BLOCK</span>       RT_THREAD_SUSPEND    <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#38459;&#22622;&#29366;&#24577; &#32447;&#31243;&#19981;&#21442;&#19982;&#35843;&#24230;
+</span><span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">RT_THREAD_CLOSE</span>       0x04                 <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#20851;&#38381;&#29366;&#24577; &#32447;&#31243;&#19981;&#21442;&#19982;&#35843;&#24230;
+</span></pre>
+
+
+
+
+
+</div>
+
+<div id="outline-container-6.1" class="outline-3">
+<h3 id="sec-6.1">6.1 <code>RT_THREAD_INIT</code> </h3>
+<div id="text-6.1">
+
+<p>只有在 <code>_rt_thread_init</code> 函数里面将thread-&gt;stat赋值为 <code>RT_THREAD_INIT</code>
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-6.2" class="outline-3">
+<h3 id="sec-6.2">6.2 <code>RT_THREAD_READY</code> </h3>
+<div id="text-6.2">
+
+<p>在 <code>rt_schedule_insert_thread</code> 函数中改变状态
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-6.3" class="outline-3">
+<h3 id="sec-6.3">6.3 <code>RT_THREAD_SUSPEND</code> </h3>
+<div id="text-6.3">
+
+<p><code>rt_thread_startup</code> 函数将挂起线程
+</p>
+<p>
+<code>rt_thread_suspend</code> 函数会挂起线程
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-6.4" class="outline-3">
+<h3 id="sec-6.4">6.4 <code>RT_THREAD_RUNNING</code> </h3>
+<div id="text-6.4">
+
+<p>都没搜到哪里用到了
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-6.5" class="outline-3">
+<h3 id="sec-6.5">6.5 <code>RT_THREAD_BLOCK</code> </h3>
+<div id="text-6.5">
+
+<p>也没有地方用到
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-6.6" class="outline-3">
+<h3 id="sec-6.6">6.6 <code>RT_THREAD_CLOSE</code> </h3>
+<div id="text-6.6">
+
+<p><code>rt_thread_exit</code> 函数会关闭线程
+</p>
+<p>
+<code>rt_thread_detach</code> 函数会关闭线程
+</p>
+<p>
+<code>rt_thread_delete</code> 函数会关闭线程
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-6.7" class="outline-3">
+<h3 id="sec-6.7">6.7 kernel如何找到当前优先级最高的线程的 </h3>
+<div id="text-6.7">
+
+
+<p>
+blog.csdn.net/prife/articale/details/7077120 文章中 Prife写的非常的详尽和清楚明白
+</p>
+<p>
+主要是进行了位图调度算法分析
+</p>
+<p>
+先说白了就是一个哈希表+双向链表的结构，不过这个哈希表是个位图，也就是个二位数组，映射起来很方便。
+</p>
+<p>
+rt-thread的调度算法是基于优先级和时间片的，时间片部分前面大概分析了以下，不过还不是很清晰。
+</p>
+<p>
+优先级这部分，通过上面的文章介绍，倒是很清晰了。很感谢Prife开放自己的思想。
+</p>
+<p>
+这个问题可以这么描述：
+</p>
+<p>
+现在有一堆优先级不同的线程，优先级是一个数，这个数越小表示这个线程的优先级越高，现在要用一种简单的方法来找出来这一堆线程里面谁的优先级最高。
+</p>
+<p>
+现在先要定义一个数组来表示优先级
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #9acd32; font-weight: bold;">rt_list_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">rt_thread_priority_table</span>[RT_THREAD_PRIORITY_MAX];
+</pre>
+
+
+
+<p>
+这其中 <code>RT_THREAD_PRIORITY_MAX</code> = 256
+</p>
+<p>
+我们的目的在于找出当前最高的优先级是多少来，然后根据 <code>rt_thread_priority_table[最高优先级]</code> 来找到对应的进程。
+</p>
+<p>
+实际的代码是
+</p>
+
+
+<pre class="src src-c">
+to_thread = rt_list_entry(rt_thread_priority_table[highest_ready_priority].next, xxxx);
+</pre>
+
+
+
+<p>
+因此，如何确定 <code>hightest_ready_priorit</code> 就关键了
+</p>
+<p>
+这里存在这么一个问题，如果使用for循环是肯定可以找到的，不过时间消耗没有办法确定，我们需要的是一个时间消耗恒定的算法。
+</p>
+<p>
+因此，就想，不就是256个优先级么，当前这个优先级上要不有ready进程，要不没有。
+</p>
+<p>
+因此，可以用一个256bits的数来表示，bit为1就表示这一个级别的优先级上有ready进程，否则，就是空的。
+</p>
+<p>
+从C语言的角度来看，定义一个数组来表示比较合适
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #9acd32; font-weight: bold;">rt_uint8_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">rt_thread_ready_table</span>[32];
+</pre>
+
+
+
+
+<p>
+为什么是uint8也就是8位的呢，因为，8位的的确是比较好算，好处理。
+</p>
+<p>
+这样相当于给256个bit分了32组，每组8个优先级。
+</p>
+<p>
+现在，我们就单独的只看8个优先级，这8个bit。
+</p>
+<p>
+8个bit可以形成一个byte。它的取值范围是0x00到0xFF。
+</p>
+<p>
+为什么这么说，因为，每当新建一个进程的时候，都会赋予它一个优先级，对应的，这个byte对应的位就要置1。
+</p>
+<p>
+比如，现在有A,B,C三个进程，优先级分别为1，3，4，则，这个byte=0b00011010=26=0x1a。
+</p>
+<p>
+这也是为什么我们用8位来解释问题，因为32位所代表的数实在是太大了，2<sup>32</sup>=4G，没法表示～(这里说的是 <code>rt_thread_ready_priority_group</code> 这个32位的数)
+</p>
+<p>
+这32位表示了 <code>rt_thread_ready_table</code> 的32个组。这样考虑的，以8位为单位进行最小位图的展开，这样相当于形成了一个二级的映射关系。
+</p>
+<p>
+256bit-&mdash;&gt;32group-&mdash;&gt;8bit位图
+</p>
+<p>
+把这0x00~0xFF表示成一个数
+</p>
+<p>
+那么，这8位优先级中找到最高的优先级的问题，就变成了，这个数里面最低位为1的问题。
+</p>
+<p>
+是这么理解的：
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<col align="right"></col><col align="right"></col><col align="right"></col><col align="left"></col><col align="left"></col><col align="left"></col><col align="left"></col><col align="left"></col><col align="left"></col><col align="left"></col>
+<thead>
+<tr><th>bit7</th><th>bit6</th><th>bit5</th><th>bit4</th><th>bit3</th><th>bit2</th><th>bit1</th><th>bit0</th><th>十进制</th><th>最高优先级</th></tr>
+</thead>
+<tbody>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>2</td><td>1</td></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td><td>3</td><td>0</td></tr>
+<tr><td>..</td><td>..</td><td>..</td><td>..</td><td>..</td><td>..</td><td>..</td><td>..</td><td>..</td><td>..</td></tr>
+<tr><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>255</td><td>0</td></tr>
+</tbody>
+</table>
+
+
+<p>
+研究一下上表，会发现，可以事先确定出来，最高优先级是几。
+</p>
+<p>
+因此可以得到一个数组
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #add8e6; font-weight: bold;">const</span> <span style="color: #9acd32; font-weight: bold;">rt_uint8_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">rt_lowest_bitmap</span>[] =
+{
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">00 </span><span style="color: #cccccc; font-style: italic;">*/</span> 0, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">10 </span><span style="color: #cccccc; font-style: italic;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">20 </span><span style="color: #cccccc; font-style: italic;">*/</span> 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">30 </span><span style="color: #cccccc; font-style: italic;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">40 </span><span style="color: #cccccc; font-style: italic;">*/</span> 6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">50 </span><span style="color: #cccccc; font-style: italic;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">60 </span><span style="color: #cccccc; font-style: italic;">*/</span> 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">70 </span><span style="color: #cccccc; font-style: italic;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">80 </span><span style="color: #cccccc; font-style: italic;">*/</span> 7, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">90 </span><span style="color: #cccccc; font-style: italic;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">A0 </span><span style="color: #cccccc; font-style: italic;">*/</span> 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">B0 </span><span style="color: #cccccc; font-style: italic;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">C0 </span><span style="color: #cccccc; font-style: italic;">*/</span> 6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">D0 </span><span style="color: #cccccc; font-style: italic;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">E0 </span><span style="color: #cccccc; font-style: italic;">*/</span> 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">F0 </span><span style="color: #cccccc; font-style: italic;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+};
+</pre>
+
+
+
+
+<p>
+那，我们看看，进程在创建的时候，优先级是怎么来影响个个变量的呢
+</p>
+
+
+
+<pre class="src src-c">
+<span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#19968;&#24320;&#22987;&#30340;&#26102;&#20505;&#65292;&#35201;&#29992;&#21040;thread&#32467;&#26500;&#20307;
+</span>thread-&gt;init_priority = priority;
+<span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#22312;starup&#20989;&#25968;&#37324;&#38754;&#65292;&#36716;&#25442;&#20248;&#20808;&#32423;&#65292;&#32431;&#25968;&#23398;
+</span>thread-&gt;number = thread-&gt;current_priority &gt;&gt; 3; <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#30456;&#24403;&#20110;prioroity/8&#21462;&#24471;&#33853;&#22312;&#21738;&#19968;&#20010;&#32452;&#37324;&#38754;
+</span>thread-&gt;number_mask = 1L &lt;&lt; thread_number; 
+thread-&gt;high_mask = 1L &lt;&lt; (thread-&gt;current_priority &amp; 0x07); <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#30456;&#24403;&#20110;priority%8&#65292;&#20313;&#25968;&#65292;&#21462;&#30340;&#36825;&#19968;&#20010;&#32452;&#20013;&#65292;8bit&#20013;&#30340;&#31532;&#20960;&#20301;
+</span><span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#32622;&#19968;&#30340;&#30446;&#30340;&#22312;&#20110;&#26041;&#20415;&#20301;&#25805;&#20316;
+</span><span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">insert&#36827;&#31243;&#30340;&#26102;&#20505;&#32622;&#20301;
+</span>rt_thread_ready_table[thread-&gt;number] |= thread-&gt;high_mask; <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#23545;&#24212;&#32452;&#20013;&#30340;&#23545;&#24212;&#20301;&#65292;&#32622;&#19968;
+</span>rt_thread_ready_priority_group |= thread-&gt;number_mask; <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#23545;&#24212;&#32452;&#20013;&#30340;&#26631;&#35760;&#65292;&#32622;&#19968;
+</span></pre>
+
+
+
+
+<p>
+现在可以看出来， <code>rt_thread_ready_table[]</code> 是对256个优先级的一一映射。
+</p>
+<p>
+而 <code>rt_thread_ready_priority_group</code> 是对这个表的一个抽象，分组。
+</p>
+<p>
+看到这儿，我觉得我可以理解schedule的代码了
+</p>
+<p>
+256位的十六进制就是0xFFFF FFFF。
+</p>
+<p>
+主要使用 <code>rt_thread_ready_priority_group</code> 来进行操作，每次比较8位，相当于把32个组又分成了8x4份来进行比较。
+</p>
+<p>
+因此，会有
+</p>
+
+
+<pre class="src src-c">
+rt_thread_ready_priority_group &amp; 0x000000FF
+rt_thread_ready_priority_group &amp; 0x0000FF00
+rt_thread_ready_priority_group &amp; 0x00FF0000
+rt_thread_ready_priority_group &amp; 0xFF000000
+</pre>
+
+
+
+<p>
+这样的代码比较，主要是比较出来，哪8位的里面有1的存在，而且是从低位到高位比较的，这样，也遵循了低位表示高优先级的原则
+</p>
+<p>
+假设0xff的就中了，那么
+</p>
+
+
+<pre class="src src-c">
+number = rt_lowest_bitmap[rt_thread_ready_priority_group &amp; 0xff];
+</pre>
+
+
+
+<p>
+就表示了，在这8位中，查表，得到了，最低优先级的位数，赋值给number。此时number表示，在32个组中，第几个组里面有最后的结果。
+</p>
+<p>
+然后这个组里的第几位要通过
+</p>
+
+
+<pre class="src src-c">
+rt_lowest_bitmap[rt_thread_ready_table[number]]; 
+</pre>
+
+
+
+<p>
+来查表，找出了，具体的第几位。
+</p>
+<p>
+最后再把它们拼接起来，所以就有了
+</p>
+
+
+<pre class="src src-c">
+highest_ready_priority = (number &lt;&lt; 3) + rt_lowest_bitmap[rt_thread_ready_table[number]]
+</pre>
+
+
+
+
+<p>
+整个相当于查了四次表
+</p><ul>
+<li>
+第一次： <code>rt_thread_ready_priority_group</code> 中第几组8位中存在1
+</li>
+<li>
+第二次： 这个8位的组中，最低位是1的是第几位,代表了32个组中第几个组中有最高优先级
+</li>
+<li>
+第三次： <code>rt_thread_ready_table</code> 中这一组中的内容取出来
+</li>
+<li>
+第四次： 再用一边 <code>rt_lowest_bitmap</code> 的查表，确认这一组中第几位是1，表示了最高优先级
+</li>
+</ul>
+
+<p>最后把“组信息“和“组内的位信息“还原回表示整个256位中第几位的数值
+</p>
+<p>
+一个先抽象运算再还原结果的过程。其中这个 <code>rt_lowest_bitmap</code> 的位图被使用了两次，算法是一样的，其意义是不一样的。
+</p>
+<p>
+虽然都是为了找8位中最低位为1的位数，只是，这个位数所表示的含义是不一样的。
+</p>
+<p>
+通过这一系列的折腾，就找到了当前最高的优先级的进程，而且是在ready队列里面的，接下来就准备调用它了。
+</p>
+<p>
+不在ready队列里面的是不会被调度的。
+</p></div>
 </div>
 </div>
 <div id="postamble"><p class="author"> Author: Wizard.Yang
 <a href="mailto:xblandy@gmail.com">&lt;xblandy@gmail.com&gt;</a>
 </p>
-<p class="date"> Date: 2012-09-06 17:20:37 CST</p>
+<p class="date"> Date: 2012-09-10 14:10:12 CST</p>
 </div></body>
 </html>
