@@ -1,0 +1,1193 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+lang="en" xml:lang="en">
+<head>
+<title>GT82X电容触摸屏</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="2012-10-08 11:32:52 CST"/>
+<meta name="author" content="Wizard.Yang"/>
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  html { font-family: Times, serif; font-size: 12pt; }
+  .title  { text-align: center; }
+  .todo   { color: red; }
+  .done   { color: green; }
+  .tag    { background-color:lightblue; font-weight:normal }
+  .target { }
+  .timestamp { color: grey }
+  .timestamp-kwd { color: CadetBlue }
+  p.verse { margin-left: 3% }
+  pre {
+	border: 1pt solid #AEBDCC;
+	background-color: #F3F5F7;
+	padding: 5pt;
+	font-family: courier, monospace;
+        font-size: 90%;
+        overflow:auto;
+  }
+  table { border-collapse: collapse; }
+  td, th { vertical-align: top; }
+  dt { font-weight: bold; }
+  div.figure { padding: 0.5em; }
+  div.figure p { text-align: center; }
+  .linenr { font-size:smaller }
+  .code-highlighted {background-color:#ffff00;}
+  .org-info-js_info-navigation { border-style:none; }
+  #org-info-js_console-label { font-size:10px; font-weight:bold;
+                               white-space:nowrap; }
+  .org-info-js_search-highlight {background-color:#ffff00; color:#000000;
+                                 font-weight:bold; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*/-->
+</script>
+</head><body>
+<h1 class="title">GT82X电容触摸屏</h1>
+
+<p>目录；
+lichee/linux-3.0/drivers/input/touchscreen/
+</p>
+<p>
+文件：
+</p>
+<p>
+gt82x.h
+</p>
+<p>
+gt82x.c
+</p>
+
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1 gt82x.h </a></li>
+<li><a href="#sec-2">2 gt82x.c </a>
+<ul>
+<li><a href="#sec-2.1">2.1 驱动注册流程 </a></li>
+<li><a href="#sec-2.2">2.2 工作队列 </a></li>
+<li><a href="#sec-2.3">2.3 触摸屏相关的数据结构 </a></li>
+<li><a href="#sec-2.4">2.4 驱动加载后执行的函数 </a></li>
+</ul>
+</li>
+<li><a href="#sec-3">3 I2C子系统 </a>
+<ul>
+<li><a href="#sec-3.1">3.1 summary </a>
+<ul>
+<li><a href="#sec-3.1.1">3.1.1 I2C and SMBus </a></li>
+<li><a href="#sec-3.1.2">3.1.2 Terminology </a></li>
+</ul>
+</li>
+<li><a href="#sec-3.2">3.2 代码 i2c-boardinfo.c </a></li>
+<li><a href="#sec-3.3">3.3 i2c-core.h </a></li>
+</ul>
+</li>
+<li><a href="#sec-4">4 <code>goodix_ts_work_func</code> </a></li>
+<li><a href="#sec-5">5 触摸屏中断的产生 </a></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1">1 gt82x.h </h2>
+<div id="text-1">
+
+
+
+
+<pre class="src src-c">
+<span style="color: #da70d6;">#if</span><span style="color: #da70d6;">n</span><span style="color: #da70d6;">def</span> _LINUX_GOODIX_TOUCH_H
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">_LINUX_GOODIX_TOUCH_H</span>
+
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/earlysuspend.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/hrtimer.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/i2c.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/input.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;mach/irqs.h&gt;</span>
+
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">fail</span>    0
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">success</span> 1
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">false</span>   0
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">true</span>    1
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">RELEASE_DATE</span> <span style="color: #008b00;">"2012-08-21"</span>
+
+<span style="color: #da70d6;">#if</span> 1
+<span style="color: #da70d6;">#define</span> <span style="color: #0000ff;">DEBUG</span>(<span style="color: #8b5a2b;">fmt</span>, <span style="color: #8b5a2b;">arg</span>...) printk(<span style="color: #008b00;">"&lt;--GT-DEBUG--&gt;"</span>fmt, ##arg)
+<span style="color: #da70d6;">#else</span>
+<span style="color: #da70d6;">#define</span> <span style="color: #0000ff;">DEBUG</span>(<span style="color: #8b5a2b;">fmt</span>, <span style="color: #8b5a2b;">arg</span>...)
+<span style="color: #da70d6;">#endif</span>
+
+<span style="color: #da70d6;">#if</span> 1
+<span style="color: #da70d6;">#define</span> <span style="color: #0000ff;">NOTICE</span>(<span style="color: #8b5a2b;">fmt</span>, <span style="color: #8b5a2b;">arg</span>...) printk(<span style="color: #008b00;">"&lt;--GT_NOTICE--&gt;"</span>fmt, ##arg)
+<span style="color: #da70d6;">#else</span>
+<span style="color: #da70d6;">#define</span> <span style="color: #0000ff;">NOTICE</span>(<span style="color: #8b5a2b;">fmt</span>, <span style="color: #8b5a2b;">arg</span>...)
+<span style="color: #da70d6;">#endif</span>
+
+<span style="color: #da70d6;">#if</span> 1
+<span style="color: #da70d6;">#define</span> <span style="color: #0000ff;">WARNING</span>(<span style="color: #8b5a2b;">fmt</span>, <span style="color: #8b5a2b;">arg</span>...) printk(<span style="color: #008b00;">"&lt;--GT-WARNING--&gt;"</span>fmt, ##arg)
+<span style="color: #da70d6;">#else</span>
+<span style="color: #da70d6;">#define</span> <span style="color: #0000ff;">WARNING</span>(<span style="color: #8b5a2b;">fmt</span>, <span style="color: #8b5a2b;">arg</span>...)
+<span style="color: #da70d6;">#endif</span>
+
+<span style="color: #da70d6;">#if</span> 1
+<span style="color: #da70d6;">#define</span> <span style="color: #0000ff;">DEBUG_MSG</span>(<span style="color: #8b5a2b;">fmt</span>, <span style="color: #8b5a2b;">arg</span>...) printk(<span style="color: #008b00;">"&lt;--GT msg--&gt;"</span>fmt, ##arg)
+<span style="color: #da70d6;">#else</span>
+<span style="color: #da70d6;">#define</span> <span style="color: #0000ff;">DEBUG_MSG</span>(<span style="color: #8b5a2b;">fmt</span>, <span style="color: #8b5a2b;">arg</span>...)
+<span style="color: #da70d6;">#endif</span>
+
+<span style="color: #da70d6;">#if</span> 1
+<span style="color: #da70d6;">#define</span> <span style="color: #0000ff;">DEBUG_UPDATE</span>(<span style="color: #8b5a2b;">fmt</span>, <span style="color: #8b5a2b;">arg</span>...) printk(<span style="color: #008b00;">"&lt;-GT update--&gt;"</span>fmt, ##arg)
+<span style="color: #da70d6;">#else</span>
+<span style="color: #da70d6;">#define</span> <span style="color: #0000ff;">DEBUG_UPDATE</span>(<span style="color: #8b5a2b;">fmt</span>, <span style="color: #8b5a2b;">arg</span>...)
+<span style="color: #da70d6;">#endif</span>
+
+<span style="color: #da70d6;">#if</span> 1
+<span style="color: #da70d6;">#define</span> <span style="color: #0000ff;">DEBUG_ARRAY</span>(<span style="color: #8b5a2b;">array</span>, <span style="color: #8b5a2b;">num</span>) <span style="color: #a020f0; font-weight: bold;">do</span>{\
+                                  <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">i</span>;\
+                                  <span style="color: #000080; font-style: italic;">u8</span> *<span style="color: #8b5a2b;">a</span>=array;\
+                                  <span style="color: #a020f0; font-weight: bold;">for</span> (i=0; i&lt;(num); i++)\
+                                  {\
+                                      printk(<span style="color: #008b00;">"%02x "</span>,(a)[i]);\
+                                      <span style="color: #a020f0; font-weight: bold;">if</span> ((i+1)%10==0)\
+                                      {\
+                                          printk(<span style="color: #008b00;">"\n"</span>);\
+                                      }\
+                                  }\
+                                  printk(<span style="color: #008b00;">"\n"</span>);\
+                                }<span style="color: #a020f0; font-weight: bold;">while</span>(0)
+<span style="color: #da70d6;">#else</span>
+<span style="color: #da70d6;">#define</span> <span style="color: #0000ff;">DEBUG_ARRAY</span>(<span style="color: #8b5a2b;">array</span>, <span style="color: #8b5a2b;">num</span>)
+<span style="color: #da70d6;">#endif</span>
+
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">ADDR_MAX_LENGTH</span>    2
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">ADDR_LENGTH</span>        ADDR_MAX_LENGTH
+
+<span style="color: #cd0000; font-weight: bold; font-style: italic;">// </span><span style="color: #cd0000; font-weight: bold; font-style: italic;">gpio base address
+</span><span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">PIO_BASE_ADDRESS</span>    (0x01c20800)
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">PIO_RANGE_SIZE</span>      (0x400)
+
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">IRQ_EINT21</span>          (21)
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">IRQ_EINT29</span>          (29)
+
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">PIO_INT_STAT_OFFSET</span> (0x214)
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">PIO_INT_CTRL_OFFSET</span> (0x210)
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">PIO_INT_CFG2_OFFSET</span> (0x208)
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">PIO_INT_CFG3_OFFSET</span> (0x20c)
+
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">SHUTDOWN_PORT</span> ()
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">INT_PORT</span>      (SW_INT_IRQNO_PIO)
+
+<span style="color: #a020f0; font-weight: bold;">extern</span> <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">gpio_int_hdle</span>;
+
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">GT_IRQ_RISING</span>    IRQ_TYPE_EDGE_RISING
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">GT_IRQ_FALLING</span>   IRQ_TYPE_EDGE_FALLING
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">INT_TRIGGER</span>      GT_IRQ_RISING
+
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">POLL_TIME</span>        10 <span style="color: #cd0000; font-weight: bold; font-style: italic;">//</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">actual query spacing interval:POLL_TIME+6
+</span>
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">GOODIX_MULTI_TOUCH</span>
+<span style="color: #da70d6;">#ifdef</span> GOODIX_MULTI_TOUCH
+<span style="color: #da70d6;">    #define</span> <span style="color: #8b5a2b;">MAX_FINGER_NUM</span> 5
+<span style="color: #da70d6;">#else</span>
+<span style="color: #da70d6;">    #define</span> <span style="color: #8b5a2b;">MAX_FINGER_NUM</span> 1
+<span style="color: #da70d6;">#endif</span>
+
+<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">goodix_ts_data</span> {
+    <span style="color: #000080; font-style: italic;">u8</span> <span style="color: #8b5a2b;">bad_data</span>;
+    <span style="color: #000080; font-style: italic;">u8</span> <span style="color: #8b5a2b;">irq_is_disable</span>;
+    <span style="color: #000080; font-style: italic;">u16</span> <span style="color: #8b5a2b;">addr</span>;
+    <span style="color: #000080; font-style: italic;">s32</span> <span style="color: #8b5a2b;">use_reset</span>;
+    <span style="color: #000080; font-style: italic;">s32</span> <span style="color: #8b5a2b;">use_irq</span>;
+    <span style="color: #000080; font-style: italic;">u32</span> <span style="color: #8b5a2b;">version</span>;
+    <span style="color: #000080; font-style: italic;">s32</span> (*<span style="color: #0000ff;">power</span>)(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">goodix_ts_data</span> *<span style="color: #8b5a2b;">ts</span>, <span style="color: #000080; font-style: italic;">s32</span> <span style="color: #8b5a2b;">on</span>);
+    <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">i2c_client</span> *<span style="color: #8b5a2b;">client</span>;
+    <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">input_dev</span> *<span style="color: #8b5a2b;">input_dev</span>;
+    <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">hrtimer</span> <span style="color: #8b5a2b;">timer</span>;
+    <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">work_struct</span> <span style="color: #8b5a2b;">work</span>;
+    <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">early_suspend</span> <span style="color: #8b5a2b;">early_suspend</span>;
+    <span style="color: #000080; font-style: italic;">s8</span> <span style="color: #8b5a2b;">phys</span>[32];
+};
+
+<span style="color: #a020f0; font-weight: bold;">extern</span> <span style="color: #000080; font-style: italic;">s32</span> <span style="color: #0000ff;">goodix_init_panel</span>(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">goodix_ts_data</span> *<span style="color: #8b5a2b;">ts</span>, <span style="color: #000080; font-style: italic;">u8</span> <span style="color: #8b5a2b;">send</span>);
+
+<span style="color: #da70d6;">#ifdef</span> CREATE_WR_NODE
+<span style="color: #a020f0; font-weight: bold;">extern</span> <span style="color: #000080; font-style: italic;">s32</span> <span style="color: #0000ff;">init_wr_node</span>(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">i2c_client</span>*);
+<span style="color: #a020f0; font-weight: bold;">extern</span> <span style="color: #000080; font-style: italic;">void</span> <span style="color: #0000ff;">unint_wr_node</span>(<span style="color: #000080; font-style: italic;">void</span>);
+<span style="color: #da70d6;">#endif</span>
+
+<span style="color: #da70d6;">#endif</span>
+
+</pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-2">
+<h2 id="sec-2">2 gt82x.c </h2>
+<div id="text-2">
+
+
+<p>
+前期定义部分
+</p>
+
+
+
+<pre class="src src-c">
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/kernel.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/module.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/delay.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/device.h&gt;</span>
+<span style="color: #da70d6;">#incldue</span> &lt;linux/interrupt.h&gt;
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/io.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/module.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/slab.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/init.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/errno.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/platform_device.h&gt;</span>
+<span style="color: #da70d6;">#incldue</span> &lt;linux/async.h&gt;
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;llinux/hrtimer.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/init.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/ioport.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/irq.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;asm/io.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;asm/uaccess.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;mach/irqs.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;mach/system.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;mach/hardware.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;mach/sys_config.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">"ctp_platform_ops.h"</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/i2c.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/input.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/err.h&gt;</span>
+
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">"gt82x.h"</span>
+
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">READ_TOUCH_ADDR_H</span> 0x0F
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">READ_TOUCH_ADDR_L</span> 0x40
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">READ_KEY_ADDR_H</span>   0x0F
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">READ_KEY_ADDR_L</span>   0x41
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">READ_COOR_ADDR_H</span>  0x0F
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">READ_COOR_ADDR_L</span>  0x42
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">RESOLUTION_LOC</span>    71
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">TRIGGER_LOC</span>       66
+
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">GOODIX_I2C_NAME</span> <span style="color: #008b00;">"Goodix-TS"</span>
+
+<span style="color: #a020f0; font-weight: bold;">const</span> <span style="color: #000080; font-style: italic;">char</span> *<span style="color: #8b5a2b;">f3x_ts_name</span> = <span style="color: #008b00;">"gt80x"</span>;
+
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">CTP_IRQ_NO</span>    (gpio_int_info[0].port_num)
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">CTP_IRQ_MODE</span>  (POSITIVE_EDGE)
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">CTP_NAME</span>      GOODIX_I2C_NAME
+
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">TS_RESET_LOW_PERIOD</span>    (15)
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">TS_INITIAL_HIGH_PERIOD</span> (15)
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">TS_WAKEUP_LOW_PERIOD</span>   (100)
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">TS_WAKEUP_HIGH_PERIOD</span>  (100)
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">TS_POLL_DELAY</span>          (10)
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">TS_POLL_RERIOD</span>         (10)
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">SCREEN_MAX_HEIGH</span>       (screen_max_x)
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">SCREEN_MAX_WIDTH</span>       (screen_max_y)
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">PRESS_MAX</span>              (255)
+
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">gpio_reset_hdle</span> = 0;
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">gpio_wakeup_enable</span> = 1;
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">gpio_reset_enable</span> = 1;
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">user_gpio_set_t</span> <span style="color: #8b5a2b;">gpio_int_info</span>[1];
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">int_cfg_addr</span>[]={PIO_INT_CFG0_OFFSET, PIO_INT_CFG1_OFFSET, PIO_INT_CFG2_OFFSET, PIO_INT_CFG3_OFFSET};
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">screen_max_x</span> = 0;
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">screen_max_y</span> = 0;
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">revert_x_flag</span> = 0;
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">revert_y_flag</span> = 0;
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">exchange_x_y_flag</span> = 0;
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">__u32</span> <span style="color: #8b5a2b;">twi_addr</span> = 0;
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">__u32</span> <span style="color: #8b5a2b;">twi_id</span> = 0;
+
+<span style="color: #cd0000; font-weight: bold; font-style: italic;">/* </span><span style="color: #cd0000; font-weight: bold; font-style: italic;">Address to scan </span><span style="color: #cd0000; font-weight: bold; font-style: italic;">*/</span>
+<span style="color: #a020f0; font-weight: bold;">union</span> {
+    <span style="color: #000080; font-style: italic;">unsigned</span> <span style="color: #000080; font-style: italic;">short</span> <span style="color: #8b5a2b;">dirty_addr_buf</span>[2]&#65307;
+    <span style="color: #a020f0; font-weight: bold;">const</span> <span style="color: #000080; font-style: italic;">unsigned</span> <span style="color: #000080; font-style: italic;">short</span> normal_i2c[2];
+} <span style="color: #8b5a2b;">u_i2c_addr</span> = {{0x00},};
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">workqueue_struct</span> *<span style="color: #8b5a2b;">goodix_wq</span>;
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #a020f0; font-weight: bold;">const</span> <span style="color: #000080; font-style: italic;">char</span> *<span style="color: #8b5a2b;">goodix_ts_name</span> = <span style="color: #008b00;">"gt82x"</span>;
+
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">void</span> *<span style="color: #8b5a2b;">__iomem</span> gpio_addr = <span style="color: #b03060;">NULL</span>;
+<span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">gpio_int_hdle</span> = 0;
+<span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">gpio_wakeup_hdle</span> = 0;
+
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">s32</span> <span style="color: #0000ff;">goodix_ts_remove</span>(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">i2c_client</span>*);
+
+<span style="color: #da70d6;">#ifdef</span> CONFIG_HAS_EARLYSUSPEND
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">void</span> <span style="color: #0000ff;">goodix_ts_early_suspend</span>(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">early_suspend</span> *<span style="color: #8b5a2b;">h</span>);
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">void</span> <span style="color: #0000ff;">goodix_ts_late_resume</span>(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">early_suspend</span> *<span style="color: #8b5a2b;">h</span>);
+<span style="color: #da70d6;">#endif</span>
+
+<span style="color: #da70d6;">#ifdef</span> CREATE_WR_NODE
+<span style="color: #a020f0; font-weight: bold;">extern</span> <span style="color: #000080; font-style: italic;">s32</span> <span style="color: #0000ff;">int_wr_node</span>(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">i2c_client</span>*);
+<span style="color: #a020f0; font-weight: bold;">extern</span> <span style="color: #000080; font-style: italic;">void</span> <span style="color: #0000ff;">unint_wr_node</span>(<span style="color: #000080; font-style: italic;">void</span>);
+<span style="color: #da70d6;">#endif</span>
+
+<span style="color: #da70d6;">#ifdef</span> AUTO_UPDATE_GUITAR
+<span style="color: #a020f0; font-weight: bold;">extern</span> <span style="color: #000080; font-style: italic;">s32</span> <span style="color: #0000ff;">int_update_proc</span>(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">goodix_ts_data</span> *);
+<span style="color: #da70d6;">#else</span>
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">void</span> <span style="color: #0000ff;">guitar_reset</span>(<span style="color: #000080; font-style: italic;">s32</span>);
+<span style="color: #da70d6;">#endif</span>
+
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">HAVE_TOUCH_KEY</span>
+<span style="color: #da70d6;">#ifdef</span> HAVE_TOUCH_KEY
+    <span style="color: #a020f0; font-weight: bold;">const</span> <span style="color: #000080; font-style: italic;">u16</span> <span style="color: #8b5a2b;">touch_key_array</span>[]={
+                                 KEY_BACK,
+                                 KEY_MENU,
+                                 KEY_HOME,
+                                 KEY_SEARCH,
+                                 };
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">MAX_KEY_NUM</span> (<span style="color: #a020f0; font-weight: bold;">sizeof</span>(touch_key_array)/<span style="color: #a020f0; font-weight: bold;">sizeof</span>(touch_key_array[0]))
+<span style="color: #da70d6;">#endif</span>
+
+<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">goodix_i2c_rmi_platform_data</span> {
+    <span style="color: #000080; font-style: italic;">uint32_t</span> <span style="color: #8b5a2b;">version</span>;
+};
+
+<span style="color: #da70d6;">#if</span> 0
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">TOUCH_MAX_HEIGHT</span> 7680
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">TOUCH_MAX_WIDTH</span>  5120
+<span style="color: #da70d6;">#else</span>
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">AUTO_SET</span>
+<span style="color: #000080; font-style: italic;">u16</span> <span style="color: #8b5a2b;">TOUCH_MAX_HEIGHT</span>;
+<span style="color: #000080; font-style: italic;">u16</span> <span style="color: #8b5a2b;">TOUCH_MAX_WIDTH</span>;
+<span style="color: #da70d6;">#endif</span>
+
+</pre>
+
+
+
+
+
+</div>
+
+<div id="outline-container-2.1" class="outline-3">
+<h3 id="sec-2.1">2.1 驱动注册流程 </h3>
+<div id="text-2.1">
+
+
+
+
+<pre class="src src-c">
+MODULE_DESCRIPTION(<span style="color: #008b00;">"Goodix Touchscreen Driver"</span>);
+MODULE_LICENSE(<span style="color: #008b00;">"GPL"</span>);
+
+late_initcall(goodix_ts_init);
+module_exit(goodix_ts_exit);
+
+<span style="color: #a020f0; font-weight: bold;">static</span> s32 <span style="color: #000080; font-style: italic;">__devinit</span> <span style="color: #0000ff;">goodix_ts_init</span>(<span style="color: #000080; font-style: italic;">void</span>) {
+    <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">ret</span> = -1;
+    <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">err</span> = -1;
+    
+    <span style="color: #a020f0; font-weight: bold;">if</span> (ctp_ops.fetch_sysconfig_para) {
+        <span style="color: #a020f0; font-weight: bold;">if</span> (ctp_ops.fetch_sysconfig_para()) {
+            <span style="color: #a020f0; font-weight: bold;">return</span> -1;
+        }
+    }
+
+    err = ctp_ops.init_platform_resource();
+    
+    ctp_set_gpio_mode();
+
+    goodix_wq = create_singlethread_workqueue(<span style="color: #008b00;">"goodix_wq"</span>);
+
+    ctp_ops.ts_reset();
+    
+    ctp_ops.ts_wakeup();
+
+    goodix_ts_driver.detect = ctp_ops.ts_detect;
+
+    ret = i2c_add_driver(&amp;goodix_ts_driver);
+
+    <span style="color: #a020f0; font-weight: bold;">return</span> ret;
+}
+
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">void</span> <span style="color: #0000ff;">__exit</span> goodix_ts_exit(<span style="color: #000080; font-style: italic;">void</span>) 
+{
+    i2c_del_driver(&amp;goodix_ts_driver);
+    <span style="color: #a020f0; font-weight: bold;">if</span> (goodix_wq)
+        destroy_workqueue(goodix_wq);
+}
+
+</pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2.2" class="outline-3">
+<h3 id="sec-2.2">2.2 工作队列 </h3>
+<div id="text-2.2">
+
+<p>LDD3 7.6 Workqueues
+</p>
+<p>
+Workqueues are, superficially, similar to tasklets; they allow kernel code to request that a function be called at some future time. Threre are however, somesignificant differences between the two, including:
+</p>
+<ul>
+<li>
+Tasklets run in software interrupt context with the result that all tasklet code must be atomic. Instead, workqueue functions run in the context of a special kernel process; as a result, they have more flexibility. In particular, workqueue functions can sleep.
+
+</li>
+<li>
+Tasklets always run on the processor from which they were originally submitted. Workqueues work in the same way, by default.
+
+</li>
+<li>
+Kernel code can request that the execution of workqueue functions be delayed for an explicit interval.
+
+</li>
+</ul>
+
+<p>The key difference between the two is that tasklets execute quickly, for a short period of time, and in atomic mode, while workqueue functions may have higher latency but need not be atomic. Each mechanism has situatons where it is appropriate.
+</p>
+<p>
+Workqueues have a type of <code>struct workqueue_struct</code>, which is defined in &lt;linux/workqueue.h&gt;. A workqueue must be explicitly created before use, using one of the following two functions:
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">workqueue_struct</span> *<span style="color: #0000ff;">create_workqueue</span>(<span style="color: #a020f0; font-weight: bold;">const</span> <span style="color: #000080; font-style: italic;">char</span> *<span style="color: #8b5a2b;">name</span>);
+<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">workqueue_struct</span> *<span style="color: #0000ff;">create_singlethread_workqueue</span>(<span style="color: #a020f0; font-weight: bold;">const</span> <span style="color: #000080; font-style: italic;">char</span> *<span style="color: #8b5a2b;">name</span>);
+</pre>
+
+
+
+
+<p>
+Each workqueue has one or more dedicated processes ("kernel threads"), which run functions submitted to the queue. If you use <code>create_workqueue</code>, you get a workqueue that has a dedicated thread for each processor on the system. In many cases, all those threads are simply overkill; if a single worker thread will suffice, create the workqueue with <code>create_singlethread_workqueue</code> instead.
+</p>
+<p>
+To submit a task to a workqueue, you need to fill in a <code>work_struct</code> struct. This can be done at compile time as follows:
+</p>
+
+
+<pre class="src src-c">
+DECLARE_WORK(name, <span style="color: #000080; font-style: italic;">void</span>(*<span style="color: #8b5a2b;">function</span>)(<span style="color: #000080; font-style: italic;">void</span>*), <span style="color: #000080; font-style: italic;">void</span> *<span style="color: #8b5a2b;">data</span>);
+</pre>
+
+
+
+<p>
+Where <code>name</code> is the name of the structure to be declared, <code>function</code> is the function that is to be called from the workqueue, and <code>data</code> is a value to pass to that functoin. If you need to set up the <code>work_struct</code> struct at runtime, use the following two macros:
+</p>
+
+
+<pre class="src src-c">
+INIT_WORK(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">work_struct</span> *<span style="color: #8b5a2b;">work</span>, <span style="color: #000080; font-style: italic;">void</span> (*<span style="color: #8b5a2b;">function</span>)(<span style="color: #000080; font-style: italic;">void</span>*), <span style="color: #000080; font-style: italic;">void</span> *<span style="color: #8b5a2b;">data</span>);
+PREPARE_WORK(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">work_struct</span> *<span style="color: #8b5a2b;">work</span>, <span style="color: #000080; font-style: italic;">void</span> (*<span style="color: #8b5a2b;">fucntion</span>)(<span style="color: #000080; font-style: italic;">void</span>*), <span style="color: #000080; font-style: italic;">void</span> *<span style="color: #8b5a2b;">data</span>);
+</pre>
+
+
+
+
+<p>
+<code>INIT_WORK</code> does a more thorough job of initializing the structure; you should use it the first time that structure is set up. <code>PREPARE_WORK</code> does almost the same job, but it does not initialize the pointers used to link the <code>work_struct</code> structure into the workqueue. If there is any possibility that the structure may currently be submitted to a workqueue, and you need to change that structure, use <code>PREPARE_WORK</code> rather than <code>INIT_WORK</code>.
+</p>
+<p>
+There are two functions for submitting work to a wrokqueue:
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #000080; font-style: italic;">int</span> <span style="color: #0000ff;">queue_work</span>(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">workqueue</span> <span style="color: #a020f0; font-weight: bold;">struct</span> *<span style="color: #000080; font-style: italic;">queue</span>, <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">work</span> <span style="color: #a020f0; font-weight: bold;">struct</span> *<span style="color: #000080; font-style: italic;">work</span>);
+<span style="color: #000080; font-style: italic;">int</span> <span style="color: #0000ff;">queue_delayed_work</span>(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">workqueue_struct</span> *<span style="color: #8b5a2b;">queue</span>, <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">work_struct</span> *<span style="color: #8b5a2b;">work</span>, <span style="color: #000080; font-style: italic;">unsigned</span> <span style="color: #000080; font-style: italic;">long</span> <span style="color: #8b5a2b;">delay</span>);
+</pre>
+
+
+
+
+<p>
+Either on adds <code>work</code> to the given <code>queue</code>. If <code>queue_delayed_work</code> is used, however, the actual work is not performed until at least <code>delay</code> jiffies have passed. The returen value from these functions is <code>0</code> if the work was successfully added to the queue; a nonzero result means that this <code>work_struct</code> structure was already waiting in the queue, and was not added a second time.
+</p>
+<p>
+At some time in the future, the work function will be called with the given <code>data</code> value. The function will be running in the context of the worker thread, so it can sleep if need be——although you should be aware of how that sleep might affect any other tasks submitted to the same workqueue. What the function cannot do, however, is access user space. Since it is running inside a kernel thread, there simply is no user space to access.
+</p>
+<p>
+Should you need to cancel a pending workqueue entry, you may call:
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #000080; font-style: italic;">int</span> <span style="color: #0000ff;">cancel</span> _delayed_work(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">work_struct</span> *<span style="color: #8b5a2b;">work</span>);
+</pre>
+
+
+
+
+<p>
+The return value is nonzero if the entry was canceled before it began excution. The kernel guarantees that execution of the given entry will not be initialed after a call to <code>cancel_delayed_work</code>. If <code>cancel_delayed_work</code> returns <code>0</code>, however, the entry may have already been running on a different processor, and might still be running after a call to <code>cancel_delayed_work</code>. To be absolutely sure that the work function is not running anywhere in the system after <code>cancel_delayed_work</code> returns <code>0</code>, you must follow that call with a call to:
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #000080; font-style: italic;">void</span> <span style="color: #0000ff;">flush_workqueue</span>(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">workqueue_struct</span> *<span style="color: #8b5a2b;">queue</span>);
+<span style="color: #da70d6;">#_END_SRC</span>
+
+After =flush_workqueue= returns, no work function submitted prior to the call is running anywhere in <span style="color: #000080; font-style: italic;">the</span> <span style="color: #8b5a2b;">system</span>.
+
+When you are done with a workqueue, you can get rid of it with:
+#+BEGIN_SRC c
+<span style="color: #000080; font-style: italic;">void</span> destroy_workqueue(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">workqueue_struct</span> *<span style="color: #8b5a2b;">queue</span>);
+</pre>
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2.3" class="outline-3">
+<h3 id="sec-2.3">2.3 触摸屏相关的数据结构 </h3>
+<div id="text-2.3">
+
+
+
+
+<pre class="src src-c">
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #a020f0; font-weight: bold;">const</span> <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">i2c_device_id</span> <span style="color: #8b5a2b;">goodix_ts_id</span>[] = {
+    { GOODIX_I2C_NAME, 0},
+    { }
+};
+
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">i2c_driver</span> <span style="color: #8b5a2b;">goodix_ts_driver</span> = {
+    .class  = I2C_CLASS_HWMON,
+    .probe  = goodix_ts_probe,
+    .remove = goodix_ts_remove,
+<span style="color: #da70d6;">#ifdef</span> CONFIG_HAS_EARLYSUSPEND
+<span style="color: #da70d6;">#else</span>
+<span style="color: #da70d6;">#ifdef</span> CONFIG_PM
+    .suspend = goodix_ts_suspend,
+    .resume  = goodix_ts_resume,
+<span style="color: #da70d6;">#endif</span>
+<span style="color: #da70d6;">#endif</span>
+    .id_table = goodix_ts_id,
+    .driver = {
+        .name = GOODIX_I2C_NAME,
+        .owner = THIS_MODULE,
+    },
+    .address_list = u_i2c_addr.normal_i2c,
+};
+</pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2.4" class="outline-3">
+<h3 id="sec-2.4">2.4 驱动加载后执行的函数 </h3>
+<div id="text-2.4">
+
+
+
+
+<pre class="src src-c">
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">s32</span> <span style="color: #0000ff;">goodix_ts_probe</span>(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">i2c_client</span> *<span style="color: #8b5a2b;">client</span>, <span style="color: #a020f0; font-weight: bold;">const</span> <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">i2c_device_id</span> *<span style="color: #8b5a2b;">id</span>)
+{
+    <span style="color: #000080; font-style: italic;">s32</span> <span style="color: #8b5a2b;">ret</span> = 0;
+    <span style="color: #000080; font-style: italic;">s32</span> <span style="color: #8b5a2b;">retry</span> = 0;
+    <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">goodix_ts_data</span> *<span style="color: #8b5a2b;">ts</span> = <span style="color: #b03060;">NULL</span>;
+    <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">goodix_i2c_rmi_platform_data</span> *<span style="color: #8b5a2b;">pdata</span> = <span style="color: #b03060;">NULL</span>;
+
+    <span style="color: #a020f0; font-weight: bold;">if</span> (!i2c_check_functionality(client-&gt;adapter, I2C_FUNC_I2C)) {
+        dev_err(&amp;client-&gt;dev, <span style="color: #008b00;">"Must have I2C_FUNC_I2C.\n"</span>);
+        <span style="color: #a020f0; font-weight: bold;">return</span> -ENODEV;
+    }
+
+    ts = kzalloc(<span style="color: #a020f0; font-weight: bold;">sizeof</span>(*ts), GFP_KERNEL);
+    <span style="color: #a020f0; font-weight: bold;">if</span> (ts == <span style="color: #b03060;">NULL</span>) {
+        <span style="color: #a020f0; font-weight: bold;">return</span> -ENOMEM;
+    }
+
+    INIT_WORK(&amp;ts-&gt;work, goodix_ts_work_func);
+    ts-&gt;client = client;
+    ts-&gt;power = goodix_ts_power;
+    ts-&gt;bad_data = 0;
+    ts-&gt;use_irq = 1;
+    ts-&gt;use_reset = 1;
+    ts-&gt;irq_is_disable = 0;
+    i2c_set_clientdata(client, ts);
+    pdata = client-&gt;dev.platform_data;
+
+    <span style="color: #a020f0; font-weight: bold;">if</span>(fail == init_input_dev(ts)) {
+        <span style="color: #a020f0; font-weight: bold;">return</span> -1;
+    }
+    set_pins(ts);
+
+    msleep(5);
+    guitar_reset(20);
+
+    <span style="color: #cd0000; font-weight: bold; font-style: italic;">// </span><span style="color: #cd0000; font-weight: bold; font-style: italic;">Test I2C connection
+</span>    <span style="color: #a020f0; font-weight: bold;">for</span> (retry = 0; retry &lt; 3; retry++) {
+        ret = i2c_pre_cmd(ts);
+        <span style="color: #a020f0; font-weight: bold;">if</span> (ret &gt; 0) {
+            <span style="color: #a020f0; font-weight: bold;">break</span>;
+        }
+        msleep(20);
+    }
+
+    <span style="color: #a020f0; font-weight: bold;">if</span> (ret &lt;= 0) {
+        dev_err(&amp;client-&gt;dev, <span style="color: #008b00;">"Warning: I2C communication might be ERROR!\n"</span>);
+        goodix_ts_remove(ts-&gt;client);
+        <span style="color: #a020f0; font-weight: bold;">return</span> -1;
+    }
+
+    <span style="color: #cd0000; font-weight: bold; font-style: italic;">// </span><span style="color: #cd0000; font-weight: bold; font-style: italic;">Send config
+</span>    <span style="color: #a020f0; font-weight: bold;">for</span> (retry = 0; retry &lt; 3; retry ++) {
+        <span style="color: #a020f0; font-weight: bold;">if</span> (success == goodix_init_panel(ts, 1)) {
+            DEBUG_MSG(<span style="color: #008b00;">"Initialize successfully!\n"</span>);
+            <span style="color: #a020f0; font-weight: bold;">break</span>;
+        }
+    }
+
+    <span style="color: #a020f0; font-weight: bold;">if</span> (retry &gt;= 3) {
+        ts-&gt;bad_data = 1;
+        DEBUG_MSG(<span style="color: #008b00;">"Initialize failed!\n"</span>);
+        goodix_ts_remove(ts-&gt;client);
+        <span style="color: #a020f0; font-weight: bold;">return</span> -1;
+    }
+
+    <span style="color: #cd0000; font-weight: bold; font-style: italic;">// </span><span style="color: #cd0000; font-weight: bold; font-style: italic;">Enable interrupt
+</span>    <span style="color: #a020f0; font-weight: bold;">if</span> (ts-&gt;use_irq &amp;&amp; ts-&gt;irq_is_disable == 1) {
+        ts-&gt;irq_is_disable = 0;
+        enable_irq(client-&gt;irq);
+    }
+
+    <span style="color: #a020f0; font-weight: bold;">return</span> 0;
+}
+</pre>
+
+
+
+
+<p>
+上面这个函数除了初始化一些函数指针之外，还做了2个方向的事情。
+</p><ul>
+<li>
+1.初始化了一个工作队列，把函数 <code>goodix_ts_work_func</code> 添加了进去
+</li>
+<li>
+2.通过I2C进行一些通信，写入了配置数组
+
+</li>
+</ul>
+
+<p>其中， <code>goodix_ts_work_func</code> 函数里面用 <code>i2c_read_bytes</code> 读到了数据就开始进行处理了。这里面主要涉及到了input子系统。
+</p>
+<p>
+而另外涉及到的子系统就是I2C子系统，这个应该先来研究一下。
+</p>
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-3" class="outline-2">
+<h2 id="sec-3">3 I2C子系统 </h2>
+<div id="text-3">
+
+<p>参考内核中Decumentation/i2c/下面的文档……
+</p>
+
+</div>
+
+<div id="outline-container-3.1" class="outline-3">
+<h3 id="sec-3.1">3.1 summary </h3>
+<div id="text-3.1">
+
+
+
+</div>
+
+<div id="outline-container-3.1.1" class="outline-4">
+<h4 id="sec-3.1.1">3.1.1 I2C and SMBus </h4>
+<div id="text-3.1.1">
+
+<p>I2C(pronounce: I squared C) is a protocol developed by Philips. It is a slow two-wire protocol(variable speed, up to 400KHz), with a high speed extension(3.4MHz). It provides an inexpensive bus for connecting many types of devices with infrequent or low bandwidth communications needs. I2C is widely used with embedded systems. Some systems use variants that don't meet branding requirements, and so are not advertised as being I2C.
+</p>
+<p>
+SMBus(System Management Bus) is based on the I2C protocol, and is mostly a subset of I2C protocols an signling. Many I2C devices will work on an SMBus, but some SMBus protocols add semantics beyond what is required to achieve I2C branding. Modern PC mainboards rely on SMBus. The most common devices connected through SMBus are RAM modules configured using I2C EEPROMs, and hardware monitoring chips.
+</p>
+<p>
+Because the SMBus is mostly a subset of the generalized I2C bus, we can use its protocols on many I2C systems. However, there are systems that don't meet both SMBus and I2C electrical constraints; and others which can't implement all the commmon SMBus protocol semantics or messages.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-3.1.2" class="outline-4">
+<h4 id="sec-3.1.2">3.1.2 Terminology </h4>
+<div id="text-3.1.2">
+
+<p>When we talk about I2C, we use the following terms:
+</p>
+<p>
+Bus -&gt; Algorithm
+</p>
+<p>
+Adapter
+</p>
+<p>
+Device -&gt; Driver
+</p>
+<p>
+Client
+</p>
+<p>
+An Algorithm driver contains general code that can be used for a whole class of I2C adapters. Each specific adapter driver either depends on on algorithm driver, or includes its own implementation.
+</p>
+<p>
+A Driver driver (yes, this sounds ridiculous, sorry) contains the general code to access some type of device. Each detected device gets its own data in the Client structure. Usually, Driver and Client are more closely integrated than Algorithm and Adapter.
+</p>
+<p>
+For a given configuration, you will need a driver for your I2C bus, and drivers for your I2C devices(usually one driver for each device).
+</p>
+<p>
+At this time, Linux only operates I2C (or SMBus) in master mode; you can't use these APIs to make a Linux system behave as a slave/device, either to speak a custom protocol or to emulate some other device.
+</p>
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-3.2" class="outline-3">
+<h3 id="sec-3.2">3.2 代码 i2c-boardinfo.c </h3>
+<div id="text-3.2">
+
+
+
+
+<pre class="src src-c">
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/kernel.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/i2c.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/slab.h&gt;</span>
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/rwsem.h&gt;</span>
+
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">"i2c-core.h"</span>
+
+<span style="color: #cd0000; font-weight: bold; font-style: italic;">/*</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">&#36825;&#20123;&#31526;&#21495;&#20165;&#20026;i2c core&#23548;&#20986;&#20351;&#29992;&#12290;&#19981;&#25903;&#25345;&#20854;&#20182;&#20351;&#29992;&#23427;&#30340;&#20351;&#29992;&#32773;</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">*/</span>
+DECLARE_RWSEM(__i2c_board_lock);
+EXPORT_SYMBOL_GPL(__i2c_board_lock);
+
+LIST_HEAD(__i2c_board_list);
+EXPORT_SYMBOL_GPL(__i2c_board_list);
+
+<span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">__i2c_first_dynamic_bus_num</span>;
+EXPORT_SYMBOL_GPL(__i2c_first_dynamic_bus_num);
+
+<span style="color: #cd0000; font-weight: bold; font-style: italic;">/*</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">
+i2c_register_board_info - &#38745;&#24577;&#22768;&#26126;I2C&#35774;&#22791;
+@busnum: &#35782;&#21035;&#36825;&#20123;&#35774;&#22791;&#26159;&#23646;&#20110;&#21738;&#26465;&#24635;&#32447;&#30340;
+@info: i2c&#35774;&#22791;&#25551;&#36848;&#31526;&#30340;&#21521;&#37327;
+@len: &#21521;&#37327;&#37324;&#26377;&#22810;&#23569;&#20010;&#25551;&#36848;&#31526;&#65307;0&#34920;&#31034;&#39044;&#30041;&#25351;&#23450;&#20102;&#30340;&#24635;&#32447;&#21495;&#30721;
+
+&#31995;&#32479;&#20351;&#29992;Linux I2C&#39537;&#21160;&#26632;&#65292;&#33021;&#22815;&#22768;&#26126;&#26495;&#23376;&#20449;&#24687;&#21015;&#34920;&#65292;&#24403;&#23427;&#20204;&#21021;&#22987;&#21270;&#30340;&#26102;&#20505;&#12290;
+&#36825;&#20123;&#24037;&#20316;&#24212;&#35813;&#22312;&#26495;&#23376;&#30456;&#20851;&#30340;&#21021;&#22987;&#21270;&#20195;&#30721;&#37324;&#23436;&#25104;&#65292;&#22312;arch_initcall()&#20989;&#25968;&#38468;&#36817;&#65292;&#25110;&#32773;&#21516;&#31561;&#30340;&#65292;&#22312;&#20219;&#20309;I2C&#36866;&#37197;&#22120;&#39537;&#21160;&#27880;&#20876;&#20043;&#21069;&#12290;
+&#27604;&#22914;&#65292;&#26495;&#23376;&#30340;&#21021;&#22987;&#21270;&#20195;&#30721;&#24212;&#35813;&#23450;&#20041;&#19968;&#20123;&#35774;&#22791;&#65292;&#20316;&#20026;&#26495;&#23376;&#19978;&#30340;&#23376;&#26495;&#30340;&#21021;&#22987;&#21270;&#20195;&#30721;
+
+I2C&#35774;&#22791;&#23558;&#20250;&#31245;&#21518;&#34987;&#21019;&#24314;&#65292;&#22312;&#30456;&#24212;&#24635;&#32447;&#30340;&#36866;&#37197;&#22120;&#27880;&#20876;&#20043;&#21518;&#12290;&#27492;&#26102;&#65292;&#26631;&#20934;&#30340;&#39537;&#21160;&#27169;&#22411;&#24037;&#20855;&#34987;&#29992;&#26469;&#32465;&#23450;&#8220;&#26032;&#22411;&#8220;I2C&#39537;&#21160;&#32473;&#35774;&#22791;&#12290;&#22768;&#26126;&#20351;&#29992;&#36825;&#20010;&#31243;&#24207;&#30340;&#20219;&#20309;&#35774;&#22791;&#30340;&#24635;&#32447;&#21495;&#21487;&#29992;&#20110;&#21160;&#24577;&#20998;&#37197;&#12290;
+
+&#26495;&#23376;&#30340;&#20449;&#24687;&#36890;&#36807;__initdata&#23433;&#20840;&#30340;&#20256;&#36882;&#65292; &#20294;&#26159;&#23567;&#24515;&#23884;&#20837;&#30340;&#25351;&#38024;(&#27604;&#22914;platform_data, functions&#31561;)&#65292;&#22240;&#20026;&#23427;&#20204;&#19981;&#20250;&#34987;&#25335;&#36125;
+</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">*/</span>
+<span style="color: #000080; font-style: italic;">int</span> <span style="color: #0000ff;">__init</span> i2c_register_board_info(<span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">busnum</span>, <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">i2c_board_info</span> <span style="color: #a020f0; font-weight: bold;">const</span> *<span style="color: #8b5a2b;">info</span>, <span style="color: #000080; font-style: italic;">unsigned</span> <span style="color: #8b5a2b;">len</span>)
+{
+    <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">status</span>;
+    
+    down_write(&amp;__i2c_board_lock);
+
+    <span style="color: #cd0000; font-weight: bold; font-style: italic;">// </span><span style="color: #cd0000; font-weight: bold; font-style: italic;">&#21160;&#24577;&#30340;&#24635;&#32447;&#21495;&#23558;&#20250;&#22312;&#26368;&#21518;&#19968;&#20010;&#38745;&#24577;&#20043;&#21518;&#34987;&#20998;&#37197;
+</span>    <span style="color: #a020f0; font-weight: bold;">if</span> (busnum &gt;= __i2c_first_dynamic_bus_num) {
+        __i2c_first_dynamic_bus_num = busnum + 1;
+    }
+
+    <span style="color: #a020f0; font-weight: bold;">for</span> (status = 0; len; len--, info++) {
+        <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">i2c_devinfo</span> *<span style="color: #8b5a2b;">devinfo</span>;
+        
+        devinfo = kzalloc(<span style="color: #a020f0; font-weight: bold;">sizeof</span>(*devinfo), GFP_KERNEL);
+        <span style="color: #a020f0; font-weight: bold;">if</span> (!devinfo) {
+            pr_debug(<span style="color: #008b00;">"i2c-core: can't register boardinfo!\n"</span>);
+            status = -ENOMEM;
+            <span style="color: #a020f0; font-weight: bold;">break</span>;
+        }
+
+        devinfo-&gt;busnum = busnum;
+        devinfo-&gt;board_info = *info;
+        list_add_tail(&amp;devinfo-&gt;list, &amp;__i2c_board_list);
+    }
+
+    up_write(&amp;__i2c_board_lock);
+
+    <span style="color: #a020f0; font-weight: bold;">return</span> status;
+}
+
+</pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-3.3" class="outline-3">
+<h3 id="sec-3.3">3.3 i2c-core.h </h3>
+<div id="text-3.3">
+
+
+
+
+<pre class="src src-c">
+<span style="color: #da70d6;">#include</span> <span style="color: #008b00;">&lt;linux/rwsem.h&gt;</span>
+
+<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">i2c_devinfo</span> {
+    <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">list_head</span>      <span style="color: #8b5a2b;">list</span>;
+    <span style="color: #000080; font-style: italic;">int</span>                   <span style="color: #8b5a2b;">busnum</span>;
+    <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">i2c_board_info</span> <span style="color: #8b5a2b;">board_info</span>;
+}
+
+<span style="color: #cd0000; font-weight: bold; font-style: italic;">//</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">board_lock&#20445;&#25252;board_list&#21644;first_dynamic_bus_num&#12290;
+</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">//</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">&#20165;i2c core&#32452;&#20214;&#33021;&#22815;&#20351;&#29992;&#36825;&#20123;&#31526;&#21495;&#12290;
+</span><span style="color: #a020f0; font-weight: bold;">extern</span> <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">rw_semaphore</span> <span style="color: #8b5a2b;">__i2c_board_lock</span>;
+<span style="color: #a020f0; font-weight: bold;">extern</span> <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">list_head</span>    <span style="color: #8b5a2b;">__i2c_board_list</span>;
+<span style="color: #a020f0; font-weight: bold;">extern</span> <span style="color: #000080; font-style: italic;">int</span>                 <span style="color: #8b5a2b;">__i2c_first_dynamic_bus_num</span>;
+</pre>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-4" class="outline-2">
+<h2 id="sec-4">4 <code>goodix_ts_work_func</code> </h2>
+<div id="text-4">
+
+
+<p>
+这个函数大概的工作就是，从i2c总线上读出来触摸屏的触摸数据，然后把X,Y的坐标报告给Linux内核就完事了。
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #cd0000; font-weight: bold; font-style: italic;">/*</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">
+&#21151;&#33021;&#65306; &#35302;&#25720;&#23631;&#24037;&#20316;&#20989;&#25968;
+      &#30001;&#20013;&#26029;&#35302;&#21457;&#65292;&#25509;&#21463;&#19968;&#32452;&#22352;&#26631;&#25968;&#25454;&#65292;&#26657;&#39564;&#21518;&#20877;&#20998;&#26512;&#36755;&#20986;
+&#21442;&#25968;&#65306; ts: client&#31169;&#26377;&#25968;&#25454;&#32467;&#26500;&#20307;
+return : void
+</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">*/</span>
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">index</span> = 0;
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">void</span> <span style="color: #0000ff;">goodix_ts_work_func</span>(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">work_struct</span> *<span style="color: #8b5a2b;">work</span>)
+{
+    <span style="color: #000080; font-style: italic;">u8</span> <span style="color: #8b5a2b;">finger</span> = 0;
+    <span style="color: #000080; font-style: italic;">u8</span> <span style="color: #8b5a2b;">chk_sum</span> = 0;
+    <span style="color: #000080; font-style: italic;">u8</span> <span style="color: #8b5a2b;">key</span> = 0;
+    <span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">u8</span> <span style="color: #8b5a2b;">last_key</span> = 0;
+    <span style="color: #000080; font-style: italic;">u16</span> <span style="color: #8b5a2b;">X_value</span>;
+    <span style="color: #000080; font-style: italic;">u16</span> <span style="color: #8b5a2b;">Y_value</span>;
+    <span style="color: #000080; font-style: italic;">u32</span> <span style="color: #8b5a2b;">count</span> = 0;
+    <span style="color: #000080; font-style: italic;">u32</span> <span style="color: #8b5a2b;">position</span> = 0;
+    <span style="color: #000080; font-style: italic;">s32</span> <span style="color: #8b5a2b;">ret</span> = -1;
+    <span style="color: #000080; font-style: italic;">s32</span> <span style="color: #8b5a2b;">tmp</span> = 0;
+    <span style="color: #000080; font-style: italic;">s32</span> <span style="color: #8b5a2b;">i</span>;
+    <span style="color: #000080; font-style: italic;">u8</span> *<span style="color: #8b5a2b;">coor_point</span>;
+    <span style="color: #000080; font-style: italic;">u8</span> <span style="color: #8b5a2b;">touch_data</span>[2 + 2 + 5*MAX_FINGER_NUM + 1] = {READ_TOUCH_ADDR_H, READ_TOUCH_ADDR_L, 0, 0};
+    <span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">u8</span> <span style="color: #8b5a2b;">finger_last</span>[MAX_FINGER_NUM+1]={0};<span style="color: #cd0000; font-weight: bold; font-style: italic;">//</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">&#19978;&#27425;&#35302;&#25720;&#25353;&#38190;&#30340;&#25163;&#25351;&#32034;&#24341;
+</span>    <span style="color: #000080; font-style: italic;">u8</span> <span style="color: #8b5a2b;">finger_current</span>[MAX_FINGER_NUM+1] = {0};<span style="color: #cd0000; font-weight: bold; font-style: italic;">//</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">&#24403;&#21069;&#35302;&#25720;&#25353;&#38190;&#30340;&#25163;&#25351;&#32034;&#24341;
+</span>    <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">goodix_ts_data</span> *<span style="color: #8b5a2b;">ts</span> = container_of(work, <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">goodix_ts_data</span>, work);
+
+<span style="color: #da70d6;">#if</span><span style="color: #da70d6;">n</span><span style="color: #da70d6;">def</span> INT_PORT
+COORDINATE_POLL;
+<span style="color: #da70d6;">#endif</span>
+    <span style="color: #a020f0; font-weight: bold;">if</span>(tmp &gt; 9) {
+        dev_info(&amp;(ts-&gt;client-&gt;dev), <span style="color: #008b00;">"Because of transfer error, touchscreen stop working.\n"</span>);
+        <span style="color: #a020f0; font-weight: bold;">goto</span> <span style="color: #b03060;">XFER_ERROR</span>;
+    }
+    <span style="color: #cd0000; font-weight: bold; font-style: italic;">//</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">&#24314;&#35758;&#23558;&#25968;&#25454;&#19968;&#27425;&#24615;&#35835;&#21462;&#23436;,&#25968;&#25454;&#23384;&#25918;&#22312;touch_data&#37324;&#38754;
+</span>    ret = i2c_read_bytes(ts-&gt;client, touch_data, <span style="color: #a020f0; font-weight: bold;">sizeof</span>(touch_data)/<span style="color: #a020f0; font-weight: bold;">sizeof</span>(touh_data[0]));
+    i2c_end_cmd(ts);
+    <span style="color: #a020f0; font-weight: bold;">if</span> (ret &lt;= 0) {
+        dev_err(&amp;(ts-&gt;client-&gt;dev), <span style="color: #008b00;">"I2C transfer error. Number:%d\n "</span>,ret);
+        ts-&gt;bad_data = 1;
+        tmp++;
+<span style="color: #da70d6;">#if</span><span style="color: #da70d6;">n</span><span style="color: #da70d6;">def</span> INT_PORT
+        <span style="color: #a020f0; font-weight: bold;">goto</span> <span style="color: #b03060;">COORDINATE_POLL</span>;
+<span style="color: #da70d6;">#else</span>
+        <span style="color: #a020f0; font-weight: bold;">goto</span> <span style="color: #b03060;">XFER_ERROR</span>;
+<span style="color: #da70d6;">#endif</span>
+    }
+
+    <span style="color: #a020f0; font-weight: bold;">if</span> (ts-&gt;bad_data) {
+        <span style="color: #cd0000; font-weight: bold; font-style: italic;">//</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">TODO: Is sending config once again (to reset the chip) useful?
+</span>        ts-&gt;bad_data = 0;
+        msleep(20);
+    }
+
+    <span style="color: #a020f0; font-weight: bold;">if</span>((touch_data[2]&amp;0xC0)!=0x80) {
+        <span style="color: #a020f0; font-weight: bold;">goto</span> <span style="color: #b03060;">DATA_NO_READY</span>;
+    }
+
+    key = touch_data[3]&amp;0x0f; <span style="color: #cd0000; font-weight: bold; font-style: italic;">//</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">1,2,4,8
+</span>    <span style="color: #a020f0; font-weight: bold;">if</span> (key == 0x0f) {
+        <span style="color: #a020f0; font-weight: bold;">if</span> (fail == goodix_init_panel(ts, 1)) {
+            DEBUG_COOR(<span style="color: #008b00;">"Relaod config failed!\n"</span>);
+        } <span style="color: #a020f0; font-weight: bold;">else</span> {
+            DEBUG_COOR(<span style="color: #008b00;">"Reload config successfully!\n"</span>);
+        }
+        <span style="color: #a020f0; font-weight: bold;">goto</span> <span style="color: #b03060;">XFER_ERROR</span>;
+    }
+
+    <span style="color: #cd0000; font-weight: bold; font-style: italic;">//</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">&#32473;finger&#36171;&#20540;
+</span>    finger = (<span style="color: #000080; font-style: italic;">u8</span>)touch_num(touch_data[2]&amp;0x1f, MAX_FINGER_NUM);
+
+    DEBUG_COOR(<span style="color: #008b00;">"touch num:%x\n"</span>, finger);
+
+    <span style="color: #a020f0; font-weight: bold;">for</span> (i=1; i&lt;MAX_FINGER_NUM+1; i++) {
+        finger_current[i] = !!(touch_data[2]&amp;(0x01&lt;&lt;(i-1)));
+    }
+
+    <span style="color: #cd0000; font-weight: bold; font-style: italic;">//</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">&#26816;&#39564;&#26657;&#39564;&#21644;
+</span>    coor_pointer = &amp;touch_data[4];
+    chk_sum = 0;
+    <span style="color: #a020f0; font-weight: bold;">for</span> (i=0; i&lt;5*finger; i++) {
+        chk_sum += coor_pointer[i];
+    }
+    <span style="color: #a020f0; font-weight: bold;">if</span> (chk_sum != coor_pointer[5*finger]) {
+        <span style="color: #a020f0; font-weight: bold;">goto</span> <span style="color: #b03060;">XFER_ERROR</span>;
+    }
+
+    <span style="color: #cd0000; font-weight: bold; font-style: italic;">//</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">&#21457;&#36865;&#22352;&#26631;
+</span>    <span style="color: #a020f0; font-weight: bold;">if</span> (finger) {
+        <span style="color: #a020f0; font-weight: bold;">for</span> (i=0, position=1; position&lt;MAX_FINGER_NUM+1; position++) {
+            <span style="color: #a020f0; font-weight: bold;">if</span> (finger_current[position]) {
+                X_value = coor_pointer[i] &lt;&lt; 8;
+                X_value = X_value | coor_point[i+1];
+                Y_value = coor_pointer[i+2] &lt;&lt; 8;
+                Y_value = Y_value | coor_pointer[i+3];
+                <span style="color: #a020f0; font-weight: bold;">if</span> (exchange_x_y_flag == 1) {
+                    X_value += Y_value;
+                    Y_value = X_value - Y_value;
+                    X_value = X_value - Y_value;
+                }
+                <span style="color: #a020f0; font-weight: bold;">if</span> (revert_x_flag == 1) {<span style="color: #cd0000; font-weight: bold; font-style: italic;">//</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">&#32763;&#36716;X&#36724;
+</span>                    X_value = screen_max_x - X_value;
+                }
+                <span style="color: #a020f0; font-weight: bold;">if</span> (revert_y_flag == 1) {<span style="color: #cd0000; font-weight: bold; font-style: italic;">//</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">&#32763;&#36716;Y&#36724;
+</span>                    Y_value = screen_max_y - Y_value;
+                }
+                <span style="color: #a020f0; font-weight: bold;">if</span> ((X_value&gt;screen_max_x)||(Y_value&gt;=screen_max_y)) {<span style="color: #cd0000; font-weight: bold; font-style: italic;">//</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">&#36229;&#20986;&#33539;&#22260;&#30340;&#22352;&#26631;
+</span>                    <span style="color: #a020f0; font-weight: bold;">continue</span>;
+                }
+                input_report_key(ts-&gt;input_dev, BIN_TOUCH, 1);
+                input_report_abs(ts-&gt;input_dev, ABS_MT_TRACKING_ID, position-1);
+                input_report_abs(ts-&gt;input_dev, ABS_MT_POSITION_X, X_value);
+                input_report_abs(ts-&gt;input_dev, ABS_MT_POSITION_Y, Y_value);
+                input_report_abs(ts-&gt;input_dev, ABS_MT_TOUCH_MAJOR, 15);
+                input_mt_sync(ts-&gt;input_dev);
+                i += 5;
+            } 
+        }
+    }<span style="color: #a020f0; font-weight: bold;">else</span> {
+        input_report_key(ts-&gt;input_dev, BTN_TOUCH, 0);
+        input_report_abs(ts-&gt;input_dev, ABS_MT_TOUCH_MAJOR, 0);
+        input_mt_sync(ts-&gt;input_dev);
+    }
+<span style="color: #da70d6;">#ifdef</span> HAVE_TOUCH_KEY
+    <span style="color: #a020f0; font-weight: bold;">if</span> ((last_key != 0) || (key != 0)) {
+        <span style="color: #a020f0; font-weight: bold;">for</span> (count = 0; count &lt; 4; count ++) {
+            input_report_key(ts-&gt;input_dev, touch_key_array[count], !!(key&amp;(0x01&lt;&lt;count)));
+        }
+    }
+    last_key = key;
+<span style="color: #da70d6;">#endif</span>
+    input_sync(ts-&gt;input_dev);
+    <span style="color: #a020f0; font-weight: bold;">for</span> (position = 1; position&lt;MAX_FINGER_NUM+1; position++) {
+        finger_last[position] = finger_current[position];
+    }
+<span style="color: #b03060;">DATA_NO_READY</span>:
+<span style="color: #b03060;">XFER_ERROR</span>:
+    <span style="color: #a020f0; font-weight: bold;">if</span> (ts-&gt;use_irq &amp;&amp; ts-&gt;irq_is_disable == 1) {
+        ts-&gt;irq_is_disable = 0;
+        enable_irq(ts-&gt;client-&gt;irq);
+    }
+}
+</pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-5" class="outline-2">
+<h2 id="sec-5">5 触摸屏中断的产生 </h2>
+<div id="text-5">
+
+<p>触摸屏的点击动作是要产生中断的，然后才会调用 <code>goodix_ts_work_func</code> 函数
+</p>
+
+
+<pre class="src src-c">
+<span style="color: #da70d6;">#define</span> <span style="color: #8b5a2b;">CTP_IRQ_NO</span>    (gpio_int_info[0].port_num)
+</pre>
+
+
+
+
+
+<pre class="src src-c">
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">s32</span> <span style="color: #0000ff;">set_pins</span>(<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">goodix_ts_data</span> *<span style="color: #8b5a2b;">ts</span>)
+{
+...
+err = ctp_ops.set_irq_mode(<span style="color: #008b00;">"ctp_para"</span>, <span style="color: #008b00;">"ctp_int_port"</span>, CTP_IRQ_NO, CTP_IRQ_MODE);
+...
+ret = request_irq(SW_INT_IRQNO_PIO, goodix_ts_irq_handler, IRQF_TRIGGER_RISING | IRQF_SHARED, ts-&gt;client-&gt;name, ts);
+...
+}
+
+</pre>
+
+
+
+
+
+<pre class="src src-c">
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">irqreturn_t</span> <span style="color: #0000ff;">goodix_ts_irq_handler</span>(<span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">irq</span>, <span style="color: #000080; font-style: italic;">void</span> *<span style="color: #8b5a2b;">dev_id</span>)
+{
+    <span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">goodix_ts_data</span> *<span style="color: #8b5a2b;">ts</span> = (<span style="color: #a020f0; font-weight: bold;">struct</span> <span style="color: #000080; font-style: italic;">goodix_ts_data</span>*)dev_id;
+    <span style="color: #a020f0; font-weight: bold;">if</span> (!ctp_ops.judge_int_occur()) {
+        ctp_ops.clear_penirq();
+        <span style="color: #a020f0; font-weight: bold;">if</span> (!work_pending(&amp;ts-&gt;work)) {
+            queue_work(goodix_wq, &amp;ts-&gt;work);
+        }
+    } <span style="color: #a020f0; font-weight: bold;">else</span> {
+        <span style="color: #a020f0; font-weight: bold;">return</span> IRQ_NODE;
+    }
+    <span style="color: #a020f0; font-weight: bold;">return</span> IRQ_HANDLED;
+}
+</pre>
+
+
+
+
+
+<pre class="src src-c">
+<span style="color: #cd0000; font-weight: bold; font-style: italic;">/*</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">
+ctp_judge_int_occur : whether interrupt occur
+return value 0: int occur;
+             others: no int occur
+</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">*/</span>
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">int</span> <span style="color: #0000ff;">ctp_judge_int_occur</span>(<span style="color: #000080; font-style: italic;">void</span>) {
+    <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">reg_val</span>;
+    <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">ret</span> = -1;
+    
+    reg_val = readl(gpio_addr + PIO_INT_STAT_OFFSET);
+    <span style="color: #a020f0; font-weight: bold;">if</span> (reg_val&amp;(1&lt;&lt;(CTP_IRQ_NO))) {
+        ret = 0;
+    }
+    <span style="color: #a020f0; font-weight: bold;">return</span> ret;
+}
+</pre>
+
+
+
+
+
+<pre class="src src-c">
+<span style="color: #cd0000; font-weight: bold; font-style: italic;">/*</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">
+ctp_clear_penirq - clear int pending
+</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">*/</span>
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">void</span> <span style="color: #0000ff;">ctp_clear_penirq</span>(<span style="color: #000080; font-style: italic;">void</span>)
+{
+    <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">reg_val</span>;
+    reg_val = readl(gpio_addr + PIO_INT_STAT_OFFSET);
+    <span style="color: #a020f0; font-weight: bold;">if</span> ((ret_val = (reg_val&amp;(1&lt;&lt;(CTP_IRQ_NO))))) {
+        print_int_info(<span style="color: #008b00;">"%s: %d. ==CTP_IRQ_NO=\n"</span>,__func__,__LINE__);
+        writel(reg_val, gpio_addr + PIO_INT_STAT_OFFSET);
+    }
+    <span style="color: #a020f0; font-weight: bold;">return</span>;
+}
+</pre>
+
+
+
+
+
+<pre class="src src-c">
+<span style="color: #cd0000; font-weight: bold; font-style: italic;">/*</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">
+ctp_get_pendown_state: get the int_line_data state
+return value: return PRESS_DOWN: if down
+              return FREE_UP: if up
+              return 0: do not need process, equal free up.
+</span><span style="color: #cd0000; font-weight: bold; font-style: italic;">*/</span>
+<span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">int</span> <span style="color: #0000ff;">ctp_get_pendown_state</span>(<span style="color: #000080; font-style: italic;">void</span>)
+{
+    <span style="color: #000080; font-style: italic;">unsigned</span> <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">reg_val</span>;
+    <span style="color: #a020f0; font-weight: bold;">static</span> <span style="color: #000080; font-style: italic;">int</span> <span style="color: #8b5a2b;">state</span> = FREE_UP;
+    <span style="color: #cd0000; font-weight: bold; font-style: italic;">// </span><span style="color: #cd0000; font-weight: bold; font-style: italic;">get the input port state
+</span>    reg_val = readl(gpio_addr + PIOH_DATA);
+    <span style="color: #cd0000; font-weight: bold; font-style: italic;">// </span><span style="color: #cd0000; font-weight: bold; font-style: italic;">printk("reg_val = %x\n", reg_val);
+</span>    <span style="color: #a020f0; font-weight: bold;">if</span> (!(reg_val &amp; (1&lt;&lt;CTP_IRQ_NO))) {
+        state = PRESS_DOWN;
+        print_int_info(<span style="color: #008b00;">"pen down.\n"</span>);
+    } <span style="color: #a020f0; font-weight: bold;">else</span> {
+        state = FREE_UP;
+        print_int_info(<span style="color: #008b00;">"free up. \n"</span>);
+    }
+    <span style="color: #a020f0; font-weight: bold;">return</span> state;
+}
+</pre>
+
+
+
+
+</div>
+</div>
+<div id="postamble"><p class="author"> Author: Wizard.Yang
+<a href="mailto:yang1.yang@cs2c.com.cn">&lt;yang1.yang@cs2c.com.cn&gt;</a>
+</p>
+<p class="date"> Date: 2012-10-08 11:32:52 CST</p>
+</div></body>
+</html>

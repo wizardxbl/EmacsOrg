@@ -1,0 +1,876 @@
+#+AUTHOR: Wizard.Yang
+#+EMAIL: yang1.yang@cs2c.com.cn
+#+TITLE: GT82X电容触摸屏
+#+TEXT:
+#+OPTIONS: creator:nil
+
+目录；
+lichee/linux-3.0/drivers/input/touchscreen/
+
+文件：
+
+gt82x.h
+
+gt82x.c
+
+* gt82x.h
+#+BEGIN_SRC c
+#ifndef _LINUX_GOODIX_TOUCH_H
+#define _LINUX_GOODIX_TOUCH_H
+
+#include <linux/earlysuspend.h>
+#include <linux/hrtimer.h>
+#include <linux/i2c.h>
+#include <linux/input.h>
+#include <mach/irqs.h>
+
+#define fail    0
+#define success 1
+#define false   0
+#define true    1
+#define RELEASE_DATE "2012-08-21"
+
+#if 1
+#define DEBUG(fmt, arg...) printk("<--GT-DEBUG-->"fmt, ##arg)
+#else
+#define DEBUG(fmt, arg...)
+#endif
+
+#if 1
+#define NOTICE(fmt, arg...) printk("<--GT_NOTICE-->"fmt, ##arg)
+#else
+#define NOTICE(fmt, arg...)
+#endif
+
+#if 1
+#define WARNING(fmt, arg...) printk("<--GT-WARNING-->"fmt, ##arg)
+#else
+#define WARNING(fmt, arg...)
+#endif
+
+#if 1
+#define DEBUG_MSG(fmt, arg...) printk("<--GT msg-->"fmt, ##arg)
+#else
+#define DEBUG_MSG(fmt, arg...)
+#endif
+
+#if 1
+#define DEBUG_UPDATE(fmt, arg...) printk("<-GT update-->"fmt, ##arg)
+#else
+#define DEBUG_UPDATE(fmt, arg...)
+#endif
+
+#if 1
+#define DEBUG_ARRAY(array, num) do{\
+                                  int i;\
+                                  u8 *a=array;\
+                                  for (i=0; i<(num); i++)\
+				  {\
+				      printk("%02x ",(a)[i]);\
+                                      if ((i+1)%10==0)\
+                                      {\
+				          printk("\n");\
+			              }\
+				  }\
+				  printk("\n");\
+				}while(0)
+#else
+#define DEBUG_ARRAY(array, num)
+#endif
+
+#define ADDR_MAX_LENGTH    2
+#define ADDR_LENGTH        ADDR_MAX_LENGTH
+
+// gpio base address
+#define PIO_BASE_ADDRESS    (0x01c20800)
+#define PIO_RANGE_SIZE      (0x400)
+
+#define IRQ_EINT21          (21)
+#define IRQ_EINT29          (29)
+
+#define PIO_INT_STAT_OFFSET (0x214)
+#define PIO_INT_CTRL_OFFSET (0x210)
+#define PIO_INT_CFG2_OFFSET (0x208)
+#define PIO_INT_CFG3_OFFSET (0x20c)
+
+#define SHUTDOWN_PORT ()
+#define INT_PORT      (SW_INT_IRQNO_PIO)
+
+extern int gpio_int_hdle;
+
+#define GT_IRQ_RISING    IRQ_TYPE_EDGE_RISING
+#define GT_IRQ_FALLING   IRQ_TYPE_EDGE_FALLING
+#define INT_TRIGGER      GT_IRQ_RISING
+
+#define POLL_TIME        10 //actual query spacing interval:POLL_TIME+6
+
+#define GOODIX_MULTI_TOUCH
+#ifdef GOODIX_MULTI_TOUCH
+    #define MAX_FINGER_NUM 5
+#else
+    #define MAX_FINGER_NUM 1
+#endif
+
+struct goodix_ts_data {
+    u8 bad_data;
+    u8 irq_is_disable;
+    u16 addr;
+    s32 use_reset;
+    s32 use_irq;
+    u32 version;
+    s32 (*power)(struct goodix_ts_data *ts, s32 on);
+    struct i2c_client *client;
+    struct input_dev *input_dev;
+    struct hrtimer timer;
+    struct work_struct work;
+    struct early_suspend early_suspend;
+    s8 phys[32];
+};
+
+extern s32 goodix_init_panel(struct goodix_ts_data *ts, u8 send);
+
+#ifdef CREATE_WR_NODE
+extern s32 init_wr_node(struct i2c_client*);
+extern void unint_wr_node(void);
+#endif
+
+#endif
+
+#+END_SRC
+
+* gt82x.c
+
+前期定义部分
+
+#+BEGIN_SRC c
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/delay.h>
+#include <linux/device.h>
+#incldue <linux/interrupt.h>
+#include <linux/io.h>
+#include <linux/module.h>
+#include <linux/slab.h>
+#include <linux/init.h>
+#include <linux/errno.h>
+#include <linux/platform_device.h>
+#incldue <linux/async.h>
+#include <llinux/hrtimer.h>
+#include <linux/init.h>
+#include <linux/ioport.h>
+#include <linux/irq.h>
+#include <asm/io.h>
+#include <asm/uaccess.h>
+#include <mach/irqs.h>
+#include <mach/system.h>
+#include <mach/hardware.h>
+#include <mach/sys_config.h>
+#include "ctp_platform_ops.h"
+#include <linux/i2c.h>
+#include <linux/input.h>
+#include <linux/err.h>
+
+#include "gt82x.h"
+
+#define READ_TOUCH_ADDR_H 0x0F
+#define READ_TOUCH_ADDR_L 0x40
+#define READ_KEY_ADDR_H   0x0F
+#define READ_KEY_ADDR_L   0x41
+#define READ_COOR_ADDR_H  0x0F
+#define READ_COOR_ADDR_L  0x42
+#define RESOLUTION_LOC    71
+#define TRIGGER_LOC       66
+
+#define GOODIX_I2C_NAME "Goodix-TS"
+
+const char *f3x_ts_name = "gt80x";
+
+#define CTP_IRQ_NO    (gpio_int_info[0].port_num)
+#define CTP_IRQ_MODE  (POSITIVE_EDGE)
+#define CTP_NAME      GOODIX_I2C_NAME
+
+#define TS_RESET_LOW_PERIOD    (15)
+#define TS_INITIAL_HIGH_PERIOD (15)
+#define TS_WAKEUP_LOW_PERIOD   (100)
+#define TS_WAKEUP_HIGH_PERIOD  (100)
+#define TS_POLL_DELAY          (10)
+#define TS_POLL_RERIOD         (10)
+#define SCREEN_MAX_HEIGH       (screen_max_x)
+#define SCREEN_MAX_WIDTH       (screen_max_y)
+#define PRESS_MAX              (255)
+
+static int gpio_reset_hdle = 0;
+static int gpio_wakeup_enable = 1;
+static int gpio_reset_enable = 1;
+static user_gpio_set_t gpio_int_info[1];
+static int int_cfg_addr[]={PIO_INT_CFG0_OFFSET, PIO_INT_CFG1_OFFSET, PIO_INT_CFG2_OFFSET, PIO_INT_CFG3_OFFSET};
+static int screen_max_x = 0;
+static int screen_max_y = 0;
+static int revert_x_flag = 0;
+static int revert_y_flag = 0;
+static int exchange_x_y_flag = 0;
+static __u32 twi_addr = 0;
+static __u32 twi_id = 0;
+
+/* Address to scan */
+union {
+    unsigned short dirty_addr_buf[2]；
+    const unsigned short normal_i2c[2];
+} u_i2c_addr = {{0x00},};
+static struct workqueue_struct *goodix_wq;
+static const char *goodix_ts_name = "gt82x";
+
+static void *__iomem gpio_addr = NULL;
+int gpio_int_hdle = 0;
+int gpio_wakeup_hdle = 0;
+
+static s32 goodix_ts_remove(struct i2c_client*);
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void goodix_ts_early_suspend(struct early_suspend *h);
+static void goodix_ts_late_resume(struct early_suspend *h);
+#endif
+
+#ifdef CREATE_WR_NODE
+extern s32 int_wr_node(struct i2c_client*);
+extern void unint_wr_node(void);
+#endif
+
+#ifdef AUTO_UPDATE_GUITAR
+extern s32 int_update_proc(struct goodix_ts_data *);
+#else
+static void guitar_reset(s32);
+#endif
+
+#define HAVE_TOUCH_KEY
+#ifdef HAVE_TOUCH_KEY
+    const u16 touch_key_array[]={
+                                 KEY_BACK,
+				 KEY_MENU,
+				 KEY_HOME,
+				 KEY_SEARCH,
+				 };
+#define MAX_KEY_NUM (sizeof(touch_key_array)/sizeof(touch_key_array[0]))
+#endif
+
+struct goodix_i2c_rmi_platform_data {
+    uint32_t version;
+};
+
+#if 0
+#define TOUCH_MAX_HEIGHT 7680
+#define TOUCH_MAX_WIDTH  5120
+#else
+#define AUTO_SET
+u16 TOUCH_MAX_HEIGHT;
+u16 TOUCH_MAX_WIDTH;
+#endif
+
+#+END_SRC
+
+** 驱动注册流程
+#+BEGIN_SRC c
+MODULE_DESCRIPTION("Goodix Touchscreen Driver");
+MODULE_LICENSE("GPL");
+
+late_initcall(goodix_ts_init);
+module_exit(goodix_ts_exit);
+
+static s32 __devinit goodix_ts_init(void) {
+    int ret = -1;
+    int err = -1;
+    
+    if (ctp_ops.fetch_sysconfig_para) {
+        if (ctp_ops.fetch_sysconfig_para()) {
+	    return -1;
+	}
+    }
+
+    err = ctp_ops.init_platform_resource();
+    
+    ctp_set_gpio_mode();
+
+    goodix_wq = create_singlethread_workqueue("goodix_wq");
+
+    ctp_ops.ts_reset();
+    
+    ctp_ops.ts_wakeup();
+
+    goodix_ts_driver.detect = ctp_ops.ts_detect;
+
+    ret = i2c_add_driver(&goodix_ts_driver);
+
+    return ret;
+}
+
+static void __exit goodix_ts_exit(void) 
+{
+    i2c_del_driver(&goodix_ts_driver);
+    if (goodix_wq)
+        destroy_workqueue(goodix_wq);
+}
+
+#+END_SRC
+
+** 工作队列
+LDD3 7.6 Workqueues
+
+Workqueues are, superficially, similar to tasklets; they allow kernel code to request that a function be called at some future time. Threre are however, somesignificant differences between the two, including:
+从表面，看来工作队列类似于tasklet，它们都允许内核代码请求某个函数在将来的时间被调用。但是，两者之间存在一些非常重要的区别，其中包括
+
+- Tasklets run in software interrupt context with the result that all tasklet code must be atomic. Instead, workqueue functions run in the context of a special kernel process; as a result, they have more flexibility. In particular, workqueue functions can sleep.
+
+- tasklet在软件中断上下文中运行，因此，所有的tasklet代码都必须是院子的。相反，工作队列函数在一个特殊内核进程的上下文中运行，因此它们具有更好的灵活性。尤其是，工作对列函数可以休眠。
+
+- Tasklets always run on the processor from which they were originally submitted. Workqueues work in the same way, by default.
+
+- tasklet时钟运行在被初始提交的同一处理器上，大事这只是工作队列的默认方式
+
+- Kernel code can request that the execution of workqueue functions be delayed for an explicit interval.
+
+- 内核代码可以请求工作队列函数的执行延迟给定的时间间隔
+
+The key difference between the two is that tasklets execute quickly, for a short period of time, and in atomic mode, while workqueue functions may have higher latency but need not be atomic. Each mechanism has situatons where it is appropriate.
+
+两者的关键区别在于:tasklet会在很短的时间段内很快执行，并且以原子模式执行，而工作队列函数可具有更长的延迟并且不必原子化。两种机制有各自适合的情形。
+
+Workqueues have a type of =struct workqueue_struct=, which is defined in <linux/workqueue.h>. A workqueue must be explicitly created before use, using one of the following two functions:
+
+工作队列有 =struct workqueue_struct= 的类型，该结构定义在<linux/workqueue.h>中。在使用之前，我们必须显示的创建一个工作队列，可使用下面两个函数之一：
+#+BEGIN_SRC c
+struct workqueue_struct *create_workqueue(const char *name);
+struct workqueue_struct *create_singlethread_workqueue(const char *name);
+#+END_SRC
+
+Each workqueue has one or more dedicated processes ("kernel threads"), which run functions submitted to the queue. If you use =create_workqueue=, you get a workqueue that has a dedicated thread for each processor on the system. In many cases, all those threads are simply overkill; if a single worker thread will suffice, create the workqueue with =create_singlethread_workqueue= instead.
+
+每个工作队列有一个或多个专用的进程（“内核线程”），这些进程运行提交到该队列的函数。如果我们使用create_workqueue，则内核会在系统中的每个处理器上为该工作队列创建专用的线程。在许多情况下，众多的线程可能对性能具有某种程度的杀伤力；因此，如果单个工作线程足够使用，那么应该使用 =create_singlethread_workqueue= 创建工作队列。
+
+To submit a task to a workqueue, you need to fill in a =work_struct= struct. This can be done at compile time as follows:
+
+要向一个工作队列提交一个任务，需要填充一个 =work_struct= 结构，这可通过下面的宏在编译时完成：
+#+BEGIN_SRC c 
+DECLARE_WORK(name, void(*function)(void*), void *data);
+#+END_SRC
+Where =name= is the name of the structure to be declared, =function= is the function that is to be called from the workqueue, and =data= is a value to pass to that functoin. If you need to set up the =work_struct= struct at runtime, use the following two macros:
+
+其中，name是要声明的结构名称，function是要从工作队列中调用的函数，而data是要传递给该函数的值。如果要在运行时构造 =work_struct= 结构，可以使用下面两个宏：
+#+BEGIN_SRC c
+INIT_WORK(struct work_struct *work, void (*function)(void*), void *data);
+PREPARE_WORK(struct work_struct *work, void (*fucntion)(void*), void *data);
+#+END_SRC
+
+=INIT_WORK= does a more thorough job of initializing the structure; you should use it the first time that structure is set up. =PREPARE_WORK= does almost the same job, but it does not initialize the pointers used to link the =work_struct= structure into the workqueue. If there is any possibility that the structure may currently be submitted to a workqueue, and you need to change that structure, use =PREPARE_WORK= rather than =INIT_WORK=.
+
+=INIT_WORK= 完成更加彻底的初始化工作；在首次构造该结构时，应该使用这个宏。 =PREPARE_WORK= 完成几乎相同的工作，但它不会初始化用来将 =work_struct= 结构链接到工作队列的指针。如果结构已经被提交到工作队列，而只是需要修改该结构，则应该使用 =PREPARE_WORK= 而不是 =INIT_WORK= 。
+
+There are two functions for submitting work to a wrokqueue:
+
+如果要将工作提交到工作队列，则可使用下面的两个函数之一：
+#+BEGIN_SRC c
+int queue_work(struct workqueue struct *queue, struct work struct *work);
+int queue_delayed_work(struct workqueue_struct *queue, struct work_struct *work, unsigned long delay);
+#+END_SRC
+
+Either on adds =work= to the given =queue=. If =queue_delayed_work= is used, however, the actual work is not performed until at least =delay= jiffies have passed. The returen value from these functions is =0= if the work was successfully added to the queue; a nonzero result means that this =work_struct= structure was already waiting in the queue, and was not added a second time.
+
+它们都会将work添加到给定的queue。但是如果使用 =queue_delayed_work= ，则实际的工作至少会在经过指定的jiffies（由delay指定）之后才会被执行。如果工作被成功添加到队列，则上述函数的返回值为1。返回值为非零时意味着给定的 =work_struct= 结构已经等待在该队列中，从而不能两次加入该队列。
+
+At some time in the future, the work function will be called with the given =data= value. The function will be running in the context of the worker thread, so it can sleep if need be——although you should be aware of how that sleep might affect any other tasks submitted to the same workqueue. What the function cannot do, however, is access user space. Since it is running inside a kernel thread, there simply is no user space to access.
+
+在将来的某个时间，工作函数会被调用，并传入给定的data值。该函数会在工作线程的上下文运行，因此如果必要，它可以休眠——当然，我们应该仔细考虑休眠会不会影响提交到同一队列的其他任务。但是该函数不能访问用户空间，这是因为它运行在内核线程，而该县程没有对应的用户空间可以访问。
+
+Should you need to cancel a pending workqueue entry, you may call:
+
+如果要取消某个挂起的工作队列入口项，可以调用：
+#+BEGIN_SRC c
+int cancel _delayed_work(struct work_struct *work);
+#+END_SRC
+
+The return value is nonzero if the entry was canceled before it began excution. The kernel guarantees that execution of the given entry will not be initialed after a call to =cancel_delayed_work=. If =cancel_delayed_work= returns =0=, however, the entry may have already been running on a different processor, and might still be running after a call to =cancel_delayed_work=. To be absolutely sure that the work function is not running anywhere in the system after =cancel_delayed_work= returns =0=, you must follow that call with a call to:
+
+如果该入口项在开始执行前被取消，则上述函数返回非零值。在调用 =cancel_delayed_work= 之后，内核会确保不会初始化给定入口项的执行。但是，如果 =cancel_delayed_work= 返回0，则说明该入口项已经在其他处理器上运行，因此在 =cancel_delayed_work= 返回后可能仍在运行。为了绝对确保在 =cancel_delayed_work= 返回0之后，工作函数不会在系统的任何地方运行，则应该随后调用下面的函数：
+#+BEGIN_SRC c
+void flush_workqueue(struct workqueue_struct *queue);
+#_END_SRC
+
+After =flush_workqueue= returns, no work function submitted prior to the call is running anywhere in the system.
+
+=flush_workqueue= 函数返回后，任何在该调用之前被提交的工作函数都不会在系统任何地方运行。
+
+When you are done with a workqueue, you can get rid of it with:
+
+结束对工作队列的使用后，可调用下面的函数释放相关资源：
+#+BEGIN_SRC c
+void destroy_workqueue(struct workqueue_struct *queue);
+#+END_SRC
+
+
+
+
+** 触摸屏相关的数据结构
+#+BEGIN_SRC c
+static const struct i2c_device_id goodix_ts_id[] = {
+    { GOODIX_I2C_NAME, 0},
+    { }
+};
+
+static struct i2c_driver goodix_ts_driver = {
+    .class  = I2C_CLASS_HWMON,
+    .probe  = goodix_ts_probe,
+    .remove = goodix_ts_remove,
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#else
+#ifdef CONFIG_PM
+    .suspend = goodix_ts_suspend,
+    .resume  = goodix_ts_resume,
+#endif
+#endif
+    .id_table = goodix_ts_id,
+    .driver = {
+        .name = GOODIX_I2C_NAME,
+	.owner = THIS_MODULE,
+    },
+    .address_list = u_i2c_addr.normal_i2c,
+};
+#+END_SRC
+
+** 驱动加载后执行的函数
+#+BEGIN_SRC c
+static s32 goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
+{
+    s32 ret = 0;
+    s32 retry = 0;
+    struct goodix_ts_data *ts = NULL;
+    struct goodix_i2c_rmi_platform_data *pdata = NULL;
+
+    if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
+        dev_err(&client->dev, "Must have I2C_FUNC_I2C.\n");
+	return -ENODEV;
+    }
+
+    ts = kzalloc(sizeof(*ts), GFP_KERNEL);
+    if (ts == NULL) {
+        return -ENOMEM;
+    }
+
+    INIT_WORK(&ts->work, goodix_ts_work_func);
+    ts->client = client;
+    ts->power = goodix_ts_power;
+    ts->bad_data = 0;
+    ts->use_irq = 1;
+    ts->use_reset = 1;
+    ts->irq_is_disable = 0;
+    i2c_set_clientdata(client, ts);
+    pdata = client->dev.platform_data;
+
+    if(fail == init_input_dev(ts)) {
+        return -1;
+    }
+    set_pins(ts);
+
+    msleep(5);
+    guitar_reset(20);
+
+    // Test I2C connection
+    for (retry = 0; retry < 3; retry++) {
+        ret = i2c_pre_cmd(ts);
+	if (ret > 0) {
+	    break;
+	}
+	msleep(20);
+    }
+
+    if (ret <= 0) {
+        dev_err(&client->dev, "Warning: I2C communication might be ERROR!\n");
+	goodix_ts_remove(ts->client);
+	return -1;
+    }
+
+    // Send config
+    for (retry = 0; retry < 3; retry ++) {
+        if (success == goodix_init_panel(ts, 1)) {
+	    DEBUG_MSG("Initialize successfully!\n");
+	    break;
+	}
+    }
+
+    if (retry >= 3) {
+        ts->bad_data = 1;
+	DEBUG_MSG("Initialize failed!\n");
+	goodix_ts_remove(ts->client);
+	return -1;
+    }
+
+    // Enable interrupt
+    if (ts->use_irq && ts->irq_is_disable == 1) {
+        ts->irq_is_disable = 0;
+	enable_irq(client->irq);
+    }
+
+    return 0;
+}
+#+END_SRC
+
+上面这个函数除了初始化一些函数指针之外，还做了2个方向的事情。
+- 1.初始化了一个工作队列，把函数 =goodix_ts_work_func= 添加了进去
+- 2.通过I2C进行一些通信，写入了配置数组
+
+其中， =goodix_ts_work_func= 函数里面用 =i2c_read_bytes= 读到了数据就开始进行处理了。这里面主要涉及到了input子系统。
+
+而另外涉及到的子系统就是I2C子系统，这个应该先来研究一下。
+
+* I2C子系统
+参考内核中Decumentation/i2c/下面的文档……
+
+** summary
+
+*** I2C and SMBus
+I2C(pronounce: I squared C) is a protocol developed by Philips. It is a slow two-wire protocol(variable speed, up to 400KHz), with a high speed extension(3.4MHz). It provides an inexpensive bus for connecting many types of devices with infrequent or low bandwidth communications needs. I2C is widely used with embedded systems. Some systems use variants that don't meet branding requirements, and so are not advertised as being I2C.
+
+SMBus(System Management Bus) is based on the I2C protocol, and is mostly a subset of I2C protocols an signling. Many I2C devices will work on an SMBus, but some SMBus protocols add semantics beyond what is required to achieve I2C branding. Modern PC mainboards rely on SMBus. The most common devices connected through SMBus are RAM modules configured using I2C EEPROMs, and hardware monitoring chips.
+
+Because the SMBus is mostly a subset of the generalized I2C bus, we can use its protocols on many I2C systems. However, there are systems that don't meet both SMBus and I2C electrical constraints; and others which can't implement all the commmon SMBus protocol semantics or messages.
+
+*** Terminology
+When we talk about I2C, we use the following terms:
+
+Bus -> Algorithm
+
+       Adapter
+
+Device -> Driver
+
+          Client
+
+An Algorithm driver contains general code that can be used for a whole class of I2C adapters. Each specific adapter driver either depends on on algorithm driver, or includes its own implementation.
+
+A Driver driver (yes, this sounds ridiculous, sorry) contains the general code to access some type of device. Each detected device gets its own data in the Client structure. Usually, Driver and Client are more closely integrated than Algorithm and Adapter.
+
+For a given configuration, you will need a driver for your I2C bus, and drivers for your I2C devices(usually one driver for each device).
+
+At this time, Linux only operates I2C (or SMBus) in master mode; you can't use these APIs to make a Linux system behave as a slave/device, either to speak a custom protocol or to emulate some other device.
+
+** 代码 i2c-boardinfo.c
+#+BEGIN_SRC c
+#include <linux/kernel.h>
+#include <linux/i2c.h>
+#include <linux/slab.h>
+#include <linux/rwsem.h>
+
+#include "i2c-core.h"
+
+/*这些符号仅为i2c core导出使用。不支持其他使用它的使用者*/
+DECLARE_RWSEM(__i2c_board_lock);
+EXPORT_SYMBOL_GPL(__i2c_board_lock);
+
+LIST_HEAD(__i2c_board_list);
+EXPORT_SYMBOL_GPL(__i2c_board_list);
+
+int __i2c_first_dynamic_bus_num;
+EXPORT_SYMBOL_GPL(__i2c_first_dynamic_bus_num);
+
+/*
+i2c_register_board_info - 静态声明I2C设备
+@busnum: 识别这些设备是属于哪条总线的
+@info: i2c设备描述符的向量
+@len: 向量里有多少个描述符；0表示预留指定了的总线号码
+
+系统使用Linux I2C驱动栈，能够声明板子信息列表，当它们初始化的时候。
+这些工作应该在板子相关的初始化代码里完成，在arch_initcall()函数附近，或者同等的，在任何I2C适配器驱动注册之前。
+比如，板子的初始化代码应该定义一些设备，作为板子上的子板的初始化代码
+
+I2C设备将会稍后被创建，在相应总线的适配器注册之后。此时，标准的驱动模型工具被用来绑定“新型“I2C驱动给设备。声明使用这个程序的任何设备的总线号可用于动态分配。
+
+板子的信息通过__initdata安全的传递， 但是小心嵌入的指针(比如platform_data, functions等)，因为它们不会被拷贝
+*/
+int __init i2c_register_board_info(int busnum, struct i2c_board_info const *info, unsigned len)
+{
+    int status;
+    
+    down_write(&__i2c_board_lock);
+
+    // 动态的总线号将会在最后一个静态之后被分配
+    if (busnum >= __i2c_first_dynamic_bus_num) {
+        __i2c_first_dynamic_bus_num = busnum + 1;
+    }
+
+    for (status = 0; len; len--, info++) {
+        struct i2c_devinfo *devinfo;
+	
+	devinfo = kzalloc(sizeof(*devinfo), GFP_KERNEL);
+	if (!devinfo) {
+	    pr_debug("i2c-core: can't register boardinfo!\n");
+	    status = -ENOMEM;
+	    break;
+	}
+
+	devinfo->busnum = busnum;
+	devinfo->board_info = *info;
+	list_add_tail(&devinfo->list, &__i2c_board_list);
+    }
+
+    up_write(&__i2c_board_lock);
+
+    return status;
+}
+
+#+END_SRC
+
+** i2c-core.h
+#+BEGIN_SRC c
+#include <linux/rwsem.h>
+
+struct i2c_devinfo {
+    struct list_head      list;
+    int                   busnum;
+    struct i2c_board_info board_info;
+}
+
+//board_lock保护board_list和first_dynamic_bus_num。
+//仅i2c core组件能够使用这些符号。
+extern struct rw_semaphore __i2c_board_lock;
+extern struct list_head    __i2c_board_list;
+extern int                 __i2c_first_dynamic_bus_num;
+#+END_SRC
+
+* =goodix_ts_work_func=
+
+这个函数大概的工作就是，从i2c总线上读出来触摸屏的触摸数据，然后把X,Y的坐标报告给Linux内核就完事了。
+#+BEGIN_SRC c
+/*
+功能： 触摸屏工作函数
+      由中断触发，接受一组坐标数据，校验后再分析输出
+参数： ts: client私有数据结构体
+return : void
+*/
+static index = 0;
+static void goodix_ts_work_func(struct work_struct *work)
+{
+    u8 finger = 0;
+    u8 chk_sum = 0;
+    u8 key = 0;
+    static u8 last_key = 0;
+    u16 X_value;
+    u16 Y_value;
+    u32 count = 0;
+    u32 position = 0;
+    s32 ret = -1;
+    s32 tmp = 0;
+    s32 i;
+    u8 *coor_point;
+    u8 touch_data[2 + 2 + 5*MAX_FINGER_NUM + 1] = {READ_TOUCH_ADDR_H, READ_TOUCH_ADDR_L, 0, 0};
+    static u8 finger_last[MAX_FINGER_NUM+1]={0};//上次触摸按键的手指索引
+    u8 finger_current[MAX_FINGER_NUM+1] = {0};//当前触摸按键的手指索引
+    struct goodix_ts_data *ts = container_of(work, struct goodix_ts_data, work);
+
+#ifndef INT_PORT
+COORDINATE_POLL;
+#endif
+    if(tmp > 9) {
+        dev_info(&(ts->client->dev), "Because of transfer error, touchscreen stop working.\n");
+	goto XFER_ERROR;
+    }
+    //建议将数据一次性读取完,数据存放在touch_data里面
+    ret = i2c_read_bytes(ts->client, touch_data, sizeof(touch_data)/sizeof(touh_data[0]));
+    i2c_end_cmd(ts);
+    if (ret <= 0) {
+        dev_err(&(ts->client->dev), "I2C transfer error. Number:%d\n ",ret);
+	ts->bad_data = 1;
+	tmp++;
+#ifndef INT_PORT
+	goto COORDINATE_POLL;
+#else
+	goto XFER_ERROR;
+#endif
+    }
+
+    if (ts->bad_data) {
+        //TODO: Is sending config once again (to reset the chip) useful?
+	ts->bad_data = 0;
+	msleep(20);
+    }
+
+    if((touch_data[2]&0xC0)!=0x80) {
+        goto DATA_NO_READY;
+    }
+
+    key = touch_data[3]&0x0f; //1,2,4,8
+    if (key == 0x0f) {
+        if (fail == goodix_init_panel(ts, 1)) {
+	    DEBUG_COOR("Relaod config failed!\n");
+	} else {
+	    DEBUG_COOR("Reload config successfully!\n");
+	}
+	goto XFER_ERROR;
+    }
+
+    //给finger赋值
+    finger = (u8)touch_num(touch_data[2]&0x1f, MAX_FINGER_NUM);
+
+    DEBUG_COOR("touch num:%x\n", finger);
+
+    for (i=1; i<MAX_FINGER_NUM+1; i++) {
+        finger_current[i] = !!(touch_data[2]&(0x01<<(i-1)));
+    }
+
+    //检验校验和
+    coor_pointer = &touch_data[4];
+    chk_sum = 0;
+    for (i=0; i<5*finger; i++) {
+        chk_sum += coor_pointer[i];
+    }
+    if (chk_sum != coor_pointer[5*finger]) {
+        goto XFER_ERROR;
+    }
+
+    //发送坐标
+    if (finger) {
+        for (i=0, position=1; position<MAX_FINGER_NUM+1; position++) {
+	    if (finger_current[position]) {
+	        X_value = coor_pointer[i] << 8;
+		X_value = X_value | coor_point[i+1];
+		Y_value = coor_pointer[i+2] << 8;
+		Y_value = Y_value | coor_pointer[i+3];
+		if (exchange_x_y_flag == 1) {
+		    X_value += Y_value;
+		    Y_value = X_value - Y_value;
+		    X_value = X_value - Y_value;
+		}
+		if (revert_x_flag == 1) {//翻转X轴
+		    X_value = screen_max_x - X_value;
+		}
+		if (revert_y_flag == 1) {//翻转Y轴
+		    Y_value = screen_max_y - Y_value;
+		}
+		if ((X_value>screen_max_x)||(Y_value>=screen_max_y)) {//超出范围的坐标
+		    continue;
+		}
+		input_report_key(ts->input_dev, BIN_TOUCH, 1);
+		input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, position-1);
+		input_report_abs(ts->input_dev, ABS_MT_POSITION_X, X_value);
+		input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, Y_value);
+		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 15);
+		input_mt_sync(ts->input_dev);
+		i += 5;
+	    } 
+	}
+    }else {
+	input_report_key(ts->input_dev, BTN_TOUCH, 0);
+	input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
+	input_mt_sync(ts->input_dev);
+    }
+#ifdef HAVE_TOUCH_KEY
+    if ((last_key != 0) || (key != 0)) {
+        for (count = 0; count < 4; count ++) {
+	    input_report_key(ts->input_dev, touch_key_array[count], !!(key&(0x01<<count)));
+	}
+    }
+    last_key = key;
+#endif
+    input_sync(ts->input_dev);
+    for (position = 1; position<MAX_FINGER_NUM+1; position++) {
+        finger_last[position] = finger_current[position];
+    }
+DATA_NO_READY:
+XFER_ERROR:
+    if (ts->use_irq && ts->irq_is_disable == 1) {
+        ts->irq_is_disable = 0;
+	enable_irq(ts->client->irq);
+    }
+}
+#+END_SRC
+
+* 触摸屏中断的产生
+触摸屏的点击动作是要产生中断的，然后才会调用 =goodix_ts_work_func= 函数
+#+BEGIN_SRC c
+#define CTP_IRQ_NO    (gpio_int_info[0].port_num)
+#+END_SRC
+
+#+BEGIN_SRC c
+static s32 set_pins(struct goodix_ts_data *ts)
+{
+...
+err = ctp_ops.set_irq_mode("ctp_para", "ctp_int_port", CTP_IRQ_NO, CTP_IRQ_MODE);
+...
+ret = request_irq(SW_INT_IRQNO_PIO, goodix_ts_irq_handler, IRQF_TRIGGER_RISING | IRQF_SHARED, ts->client->name, ts);
+...
+}
+
+#+END_SRC
+
+#+BEGIN_SRC c
+static irqreturn_t goodix_ts_irq_handler(int irq, void *dev_id)
+{
+    struct goodix_ts_data *ts = (struct goodix_ts_data*)dev_id;
+    if (!ctp_ops.judge_int_occur()) {
+        ctp_ops.clear_penirq();
+	if (!work_pending(&ts->work)) {
+	    queue_work(goodix_wq, &ts->work);
+	}
+    } else {
+        return IRQ_NODE;
+    }
+    return IRQ_HANDLED;
+}
+#+END_SRC
+
+#+BEGIN_SRC c
+/*
+ctp_judge_int_occur : whether interrupt occur
+return value 0: int occur;
+             others: no int occur
+*/
+static int ctp_judge_int_occur(void) {
+    int reg_val;
+    int ret = -1;
+    
+    reg_val = readl(gpio_addr + PIO_INT_STAT_OFFSET);
+    if (reg_val&(1<<(CTP_IRQ_NO))) {
+        ret = 0;
+    }
+    return ret;
+}
+#+END_SRC
+
+#+BEGIN_SRC c
+/*
+ctp_clear_penirq - clear int pending
+*/
+static void ctp_clear_penirq(void)
+{
+    int reg_val;
+    reg_val = readl(gpio_addr + PIO_INT_STAT_OFFSET);
+    if ((ret_val = (reg_val&(1<<(CTP_IRQ_NO))))) {
+        print_int_info("%s: %d. ==CTP_IRQ_NO=\n",__func__,__LINE__);
+	writel(reg_val, gpio_addr + PIO_INT_STAT_OFFSET);
+    }
+    return;
+}
+#+END_SRC
+
+#+BEGIN_SRC c
+/*
+ctp_get_pendown_state: get the int_line_data state
+return value: return PRESS_DOWN: if down
+              return FREE_UP: if up
+              return 0: do not need process, equal free up.
+*/
+static int ctp_get_pendown_state(void)
+{
+    unsigned int reg_val;
+    static int state = FREE_UP;
+    // get the input port state
+    reg_val = readl(gpio_addr + PIOH_DATA);
+    // printk("reg_val = %x\n", reg_val);
+    if (!(reg_val & (1<<CTP_IRQ_NO))) {
+        state = PRESS_DOWN;
+	print_int_info("pen down.\n");
+    } else {
+        state = FREE_UP;
+	print_int_info("free up. \n");
+    }
+    return state;
+}
+#+END_SRC
+

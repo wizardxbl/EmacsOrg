@@ -6,7 +6,7 @@ lang="en" xml:lang="en">
 <title>rt-thread之realtouch 学习笔记 01</title>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2012-09-10 14:10:12 CST"/>
+<meta name="generated" content="2012-09-11 09:18:00 CST"/>
 <meta name="author" content="Wizard.Yang"/>
 <style type="text/css">
  <!--/*--><![CDATA[/*><!--*/
@@ -277,17 +277,17 @@ Target Options&hellip; -&gt; Utilities-&gt;Settings-&gt;Programming Algorithm选
 
 
 <pre class="src src-asm">
-<span style="color: #cccccc; font-style: italic;">; </span><span style="color: #cccccc; font-style: italic;">Reset handler
-</span><span style="color: #ffff00; font-weight: bold; font-style: italic;">Reset_Handler</span> <span style="color: #add8e6; font-weight: bold;">PROC</span>
-              <span style="color: #add8e6; font-weight: bold;">EXPORT</span> Reset_Handler [WEAK]
-      <span style="color: #add8e6; font-weight: bold;">IMPORT</span>  SystemInit
-      <span style="color: #add8e6; font-weight: bold;">IMPORT</span>  __main
+<span style="color: #b22222;">; </span><span style="color: #b22222;">Reset handler
+</span><span style="color: #0000ff;">Reset_Handler</span> <span style="color: #a020f0;">PROC</span>
+              <span style="color: #a020f0;">EXPORT</span> Reset_Handler [WEAK]
+      <span style="color: #a020f0;">IMPORT</span>  SystemInit
+      <span style="color: #a020f0;">IMPORT</span>  __main
            
-              <span style="color: #add8e6; font-weight: bold;">LDR</span>    R0, =SystemInit
-              <span style="color: #add8e6; font-weight: bold;">BLX</span>    R0
-              <span style="color: #add8e6; font-weight: bold;">LDR</span>    R0, =__main
-              <span style="color: #add8e6; font-weight: bold;">BX</span>     R0
-              <span style="color: #add8e6; font-weight: bold;">ENDP</span>
+              <span style="color: #a020f0;">LDR</span>    R0, =SystemInit
+              <span style="color: #a020f0;">BLX</span>    R0
+              <span style="color: #a020f0;">LDR</span>    R0, =__main
+              <span style="color: #a020f0;">BX</span>     R0
+              <span style="color: #a020f0;">ENDP</span>
 </pre>
 
 
@@ -300,63 +300,63 @@ Target Options&hellip; -&gt; Utilities-&gt;Settings-&gt;Programming Algorithm选
 
 
 <pre class="src src-c">
-<span style="color: #8fbc8f; font-weight: bold;">/**
-  * </span><span style="color: #add8e6; font-weight: bold;">@brief</span><span style="color: #8fbc8f; font-weight: bold;">  Setup the microcontroller system
+<span style="color: #ffa07a;">/**
+  * </span><span style="color: #5f9ea0;">@brief</span><span style="color: #ffa07a;">  Setup the microcontroller system
   *         Initialize the Embedded Flash Interface, the PLL and update the 
   *         SystemFrequency variable.
   *         &#35774;&#32622;MCU&#65292;&#21021;&#22987;&#21270;&#23884;&#20837;&#24335;Flash&#25509;&#21475;&#65292;PLL&#21644;&#21319;&#32423;&#31995;&#32479;&#26102;&#38047;&#39057;&#29575;&#21464;&#37327;
-  * </span><span style="color: #add8e6; font-weight: bold;">@param</span><span style="color: #8fbc8f; font-weight: bold;">  None
-  * </span><span style="color: #add8e6; font-weight: bold;">@retval</span><span style="color: #8fbc8f; font-weight: bold;"> None
+  * </span><span style="color: #5f9ea0;">@param</span><span style="color: #ffa07a;">  None
+  * </span><span style="color: #5f9ea0;">@retval</span><span style="color: #ffa07a;"> None
   */</span>
 
-<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">SystemInit</span>(<span style="color: #9acd32; font-weight: bold;">void</span>)
+<span style="color: #228b22;">void</span> <span style="color: #0000ff;">SystemInit</span>(<span style="color: #228b22;">void</span>)
 {
-  <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">FPU settings &#35774;&#32622;FPU </span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #0000cd;">  #if</span> (__FPU_PRESENT == 1) &amp;&amp; (__FPU_USED == 1)
-    SCB-&gt;CPACR |= ((3UL &lt;&lt; 10*2)|(3UL &lt;&lt; 11*2));  <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">set CP10 and CP11 Full Access CPACR:&#21327;&#22788;&#29702;&#22120;&#35775;&#38382;&#25511;&#21046;&#23492;&#23384;&#22120; </span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">
+  <span style="color: #b22222;">/* </span><span style="color: #b22222;">FPU settings &#35774;&#32622;FPU </span><span style="color: #b22222;">*/</span>
+<span style="color: #fa8072;">  #if</span> (__FPU_PRESENT == 1) &amp;&amp; (__FPU_USED == 1)
+    SCB-&gt;CPACR |= ((3UL &lt;&lt; 10*2)|(3UL &lt;&lt; 11*2));  <span style="color: #b22222;">/* </span><span style="color: #b22222;">set CP10 and CP11 Full Access CPACR:&#21327;&#22788;&#29702;&#22120;&#35775;&#38382;&#25511;&#21046;&#23492;&#23384;&#22120; </span><span style="color: #b22222;">*/</span>
+<span style="color: #b22222;">/*</span><span style="color: #b22222;">
 0b00: &#25298;&#32477;&#35775;&#38382;.&#20219;&#20309;&#35775;&#38382;&#23581;&#35797;&#37117;&#20250;&#20135;&#29983;&#19968;&#20010;NOCP&#30340;UsageFault.
 0b01: &#20248;&#20808;&#32423;&#35775;&#38382;.&#38750;&#20248;&#20808;&#32423;&#35775;&#38382;&#20135;&#29983;&#19968;&#20010;NOCP fault.
 0b10: &#20445;&#30041;.&#35775;&#38382;&#30340;&#32467;&#26524;&#26410;&#39044;&#26399;
 0b11: &#20840;&#35775;&#38382;
-</span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #0000cd;">  #endif</span>
+</span><span style="color: #b22222;">*/</span>
+<span style="color: #fa8072;">  #endif</span>
 
-  <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">Reset the RCC clock configuration to the default reset state 
-     &#22797;&#20301;RCC&#26102;&#38047;&#37197;&#32622;&#20026;&#22797;&#20301;&#21518;&#40664;&#35748;&#29366;&#24577; </span><span style="color: #cccccc; font-style: italic;">*/</span>
+  <span style="color: #b22222;">/* </span><span style="color: #b22222;">Reset the RCC clock configuration to the default reset state 
+     &#22797;&#20301;RCC&#26102;&#38047;&#37197;&#32622;&#20026;&#22797;&#20301;&#21518;&#40664;&#35748;&#29366;&#24577; </span><span style="color: #b22222;">*/</span>
 
-  <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">Set HSION bit &#20869;&#37096;&#39640;&#36895;&#26102;&#38047;&#20351;&#33021;</span><span style="color: #cccccc; font-style: italic;">*/</span>
-  RCC-&gt;CR |= (<span style="color: #9acd32; font-weight: bold;">uint32_t</span>)0x00000001;
+  <span style="color: #b22222;">/* </span><span style="color: #b22222;">Set HSION bit &#20869;&#37096;&#39640;&#36895;&#26102;&#38047;&#20351;&#33021;</span><span style="color: #b22222;">*/</span>
+  RCC-&gt;CR |= (<span style="color: #228b22;">uint32_t</span>)0x00000001;
 
-  <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">Reset CFGR register &#26102;&#38047;&#37197;&#32622;&#23492;&#23384;&#22120; </span><span style="color: #cccccc; font-style: italic;">*/</span>
+  <span style="color: #b22222;">/* </span><span style="color: #b22222;">Reset CFGR register &#26102;&#38047;&#37197;&#32622;&#23492;&#23384;&#22120; </span><span style="color: #b22222;">*/</span>
   RCC-&gt;CFGR = 0x00000000;
 
-  <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">Reset HSEON, CSSON and PLLON bits </span><span style="color: #cccccc; font-style: italic;">*/</span>
-  RCC-&gt;CR &amp;= (<span style="color: #9acd32; font-weight: bold;">uint32_t</span>)0xFEF6FFFF;
+  <span style="color: #b22222;">/* </span><span style="color: #b22222;">Reset HSEON, CSSON and PLLON bits </span><span style="color: #b22222;">*/</span>
+  RCC-&gt;CR &amp;= (<span style="color: #228b22;">uint32_t</span>)0xFEF6FFFF;
 
-  <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">Reset PLLCFGR register </span><span style="color: #cccccc; font-style: italic;">*/</span>
+  <span style="color: #b22222;">/* </span><span style="color: #b22222;">Reset PLLCFGR register </span><span style="color: #b22222;">*/</span>
   RCC-&gt;PLLCFGR = 0x24003010;
 
-  <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">Reset HSEBYP bit </span><span style="color: #cccccc; font-style: italic;">*/</span>
-  RCC-&gt;CR &amp;= (<span style="color: #9acd32; font-weight: bold;">uint32_t</span>)0xFFFBFFFF;
+  <span style="color: #b22222;">/* </span><span style="color: #b22222;">Reset HSEBYP bit </span><span style="color: #b22222;">*/</span>
+  RCC-&gt;CR &amp;= (<span style="color: #228b22;">uint32_t</span>)0xFFFBFFFF;
 
-  <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">Disable all interrupts &#26102;&#38047;&#20013;&#26029;&#23492;&#23384;&#22120; </span><span style="color: #cccccc; font-style: italic;">*/</span>
+  <span style="color: #b22222;">/* </span><span style="color: #b22222;">Disable all interrupts &#26102;&#38047;&#20013;&#26029;&#23492;&#23384;&#22120; </span><span style="color: #b22222;">*/</span>
   RCC-&gt;CIR = 0x00000000;
 
-<span style="color: #0000cd;">#ifdef</span> DATA_IN_ExtSRAM
+<span style="color: #fa8072;">#ifdef</span> DATA_IN_ExtSRAM
   SystemInit_ExtMemCtl();
-<span style="color: #0000cd;">#endif</span> <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">DATA_IN_ExtSRAM </span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #fa8072;">#endif</span> <span style="color: #b22222;">/* </span><span style="color: #b22222;">DATA_IN_ExtSRAM </span><span style="color: #b22222;">*/</span>
 
-  <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">Configure the System clock source, PLL Multiplier and Divider factors, 
-     AHB/APBx prescalers and Flash settings ----------------------------------</span><span style="color: #cccccc; font-style: italic;">*/</span>
+  <span style="color: #b22222;">/* </span><span style="color: #b22222;">Configure the System clock source, PLL Multiplier and Divider factors, 
+     AHB/APBx prescalers and Flash settings ----------------------------------</span><span style="color: #b22222;">*/</span>
   SetSysClock();
 
-  <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">Configure the Vector Table location add offset address ------------------</span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #0000cd;">#ifdef</span> VECT_TAB_SRAM
-  SCB-&gt;VTOR = SRAM_BASE | VECT_TAB_OFFSET; <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">Vector Table Relocation in Internal SRAM </span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #0000cd;">#else</span>
-  SCB-&gt;VTOR = FLASH_BASE | VECT_TAB_OFFSET; <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">Vector Table Relocation in Internal FLASH </span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #0000cd;">#endif</span>
+  <span style="color: #b22222;">/* </span><span style="color: #b22222;">Configure the Vector Table location add offset address ------------------</span><span style="color: #b22222;">*/</span>
+<span style="color: #fa8072;">#ifdef</span> VECT_TAB_SRAM
+  SCB-&gt;VTOR = SRAM_BASE | VECT_TAB_OFFSET; <span style="color: #b22222;">/* </span><span style="color: #b22222;">Vector Table Relocation in Internal SRAM </span><span style="color: #b22222;">*/</span>
+<span style="color: #fa8072;">#else</span>
+  SCB-&gt;VTOR = FLASH_BASE | VECT_TAB_OFFSET; <span style="color: #b22222;">/* </span><span style="color: #b22222;">Vector Table Relocation in Internal FLASH </span><span style="color: #b22222;">*/</span>
+<span style="color: #fa8072;">#endif</span>
 }
 
 </pre>
@@ -367,15 +367,15 @@ Target Options&hellip; -&gt; Utilities-&gt;Settings-&gt;Programming Algorithm选
 
 <pre class="src src-c">
 
-<span style="color: #9acd32; font-weight: bold;">int</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">main</span>(<span style="color: #9acd32; font-weight: bold;">void</span>)
+<span style="color: #228b22;">int</span> <span style="color: #0000ff;">main</span>(<span style="color: #228b22;">void</span>)
 {
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">disable interrupt first </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">disable interrupt first </span><span style="color: #b22222;">*/</span>
     rt_hw_interrupt_disable();
 
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">startup RT-Thread RTOS </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">startup RT-Thread RTOS </span><span style="color: #b22222;">*/</span>
     rtthread_startup();
 
-    <span style="color: #add8e6; font-weight: bold;">return</span> 0;
+    <span style="color: #a020f0;">return</span> 0;
 
 </pre>
 
@@ -388,52 +388,52 @@ Target Options&hellip; -&gt; Utilities-&gt;Settings-&gt;Programming Algorithm选
 
 
 <pre class="src src-c">
-<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">This function will startup RT-Thread RTOS.</span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">rtthread_startup</span>(<span style="color: #9acd32; font-weight: bold;">void</span>)
+<span style="color: #b22222;">/*</span><span style="color: #b22222;">This function will startup RT-Thread RTOS.</span><span style="color: #b22222;">*/</span>
+<span style="color: #228b22;">void</span> <span style="color: #0000ff;">rtthread_startup</span>(<span style="color: #228b22;">void</span>)
 {
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">init board</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">init board</span><span style="color: #b22222;">*/</span>
     rt_hw_board_init();
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">show version</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">show version</span><span style="color: #b22222;">*/</span>
     rt_show_version();
     
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">init tick</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">init tick</span><span style="color: #b22222;">*/</span>
     rt_system_tick_init();
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">init kernel object</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">init kernel object</span><span style="color: #b22222;">*/</span>
     rt_system_object_init();
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">init timer system</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">init timer system</span><span style="color: #b22222;">*/</span>
     rt_system_timer_init();
 
-<span style="color: #0000cd;">#if</span> STM32_EXT_SRAM
+<span style="color: #fa8072;">#if</span> STM32_EXT_SRAM
     ext_sram_init();
-    rt_system_heap_init((<span style="color: #9acd32; font-weight: bold;">void</span>*)STM32_EXT_SRAM_BEGIN,
-                        (<span style="color: #9acd32; font-weight: bold;">void</span>*)STM32_EXT_SRAM_END);
-<span style="color: #0000cd;">#else</span>
-    rt_system_heap_init((<span style="color: #9acd32; font-weight: bold;">void</span>*)STM32_SRAM_BEGIN, (<span style="color: #9acd32; font-weight: bold;">void</span>*)STM32_SRAM_END);
-<span style="color: #0000cd;">#endif</span> <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">STM32_EXT_SRAM </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    rt_system_heap_init((<span style="color: #228b22;">void</span>*)STM32_EXT_SRAM_BEGIN,
+                        (<span style="color: #228b22;">void</span>*)STM32_EXT_SRAM_END);
+<span style="color: #fa8072;">#else</span>
+    rt_system_heap_init((<span style="color: #228b22;">void</span>*)STM32_SRAM_BEGIN, (<span style="color: #228b22;">void</span>*)STM32_SRAM_END);
+<span style="color: #fa8072;">#endif</span> <span style="color: #b22222;">/* </span><span style="color: #b22222;">STM32_EXT_SRAM </span><span style="color: #b22222;">*/</span>
 
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">init scheduler system </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">init scheduler system </span><span style="color: #b22222;">*/</span>
     rt_system_scheduler_init();
 
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">init all device </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">init all device </span><span style="color: #b22222;">*/</span>
     rt_device_init_all();
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">init application</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">init application</span><span style="color: #b22222;">*/</span>
     rt_application_init();
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">init timer thread</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">init timer thread</span><span style="color: #b22222;">*/</span>
     rt_system_timer_thread_init();
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">init idle thread</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">init idle thread</span><span style="color: #b22222;">*/</span>
     rt_thread_idle_init();
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">start scheduler</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">start scheduler</span><span style="color: #b22222;">*/</span>
     rt_system_scheduler_start();
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">never reach here</span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #add8e6; font-weight: bold;">return</span>;
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">never reach here</span><span style="color: #b22222;">*/</span>
+    <span style="color: #a020f0;">return</span>;
 }
 </pre>
 
@@ -495,23 +495,23 @@ Target Options&hellip; -&gt; Utilities-&gt;Settings-&gt;Programming Algorithm选
 
 
 <pre class="src src-c">
-<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">This function will initial STM32 board.</span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">rt_hw_board_init</span>()
+<span style="color: #b22222;">/*</span><span style="color: #b22222;">This function will initial STM32 board.</span><span style="color: #b22222;">*/</span>
+<span style="color: #228b22;">void</span> <span style="color: #0000ff;">rt_hw_board_init</span>()
 {
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">NVIC Configuration &#35774;&#32622;&#20013;&#26029;&#21521;&#37327;&#34920;</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">NVIC Configuration &#35774;&#32622;&#20013;&#26029;&#21521;&#37327;&#34920;</span><span style="color: #b22222;">*/</span>
     NVIC_Configurationa();
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">Configure the SysTick &#37197;&#32622;&#31995;&#32479;tick&#23450;&#26102;&#22120;&#21644;&#23427;&#30340;&#20013;&#26029;&#65292;&#24182;&#19988;&#21551;&#21160;tick&#23450;&#26102;&#22120;</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">Configure the SysTick &#37197;&#32622;&#31995;&#32479;tick&#23450;&#26102;&#22120;&#21644;&#23427;&#30340;&#20013;&#26029;&#65292;&#24182;&#19988;&#21551;&#21160;tick&#23450;&#26102;&#22120;</span><span style="color: #b22222;">*/</span>
     SysTick_Config(SystemCoreClock/RT_TICK_PER_SECOND);
 
-    rt_hw_usart_init();<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#26681;&#25454;&#23450;&#20041;&#30340;&#23439;&#65292;&#37197;&#32622;&#23545;&#24212;&#30340;&#20018;&#21475;&#65292;&#24182;&#19988;&#27880;&#20876;&#20102;UART1</span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #0000cd;">#ifdef</span> RT_USING_CONSOLE
-    rt_console_set_device(RT_CONSOLE_DEVICE_NAME);<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#35774;&#32622;&#19968;&#20010;&#35774;&#22791;&#20316;&#20026;&#25511;&#21046;&#21488;&#35774;&#22791;&#12290;&#25152;&#26377;&#30340;&#36755;&#20986;&#37117;&#20250;&#34987;&#37325;&#23450;&#21521;&#21040;&#36825;&#20010;&#35774;&#22791;</span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #0000cd;">#endif</span>
+    rt_hw_usart_init();<span style="color: #b22222;">/*</span><span style="color: #b22222;">&#26681;&#25454;&#23450;&#20041;&#30340;&#23439;&#65292;&#37197;&#32622;&#23545;&#24212;&#30340;&#20018;&#21475;&#65292;&#24182;&#19988;&#27880;&#20876;&#20102;UART1</span><span style="color: #b22222;">*/</span>
+<span style="color: #fa8072;">#ifdef</span> RT_USING_CONSOLE
+    rt_console_set_device(RT_CONSOLE_DEVICE_NAME);<span style="color: #b22222;">/*</span><span style="color: #b22222;">&#35774;&#32622;&#19968;&#20010;&#35774;&#22791;&#20316;&#20026;&#25511;&#21046;&#21488;&#35774;&#22791;&#12290;&#25152;&#26377;&#30340;&#36755;&#20986;&#37117;&#20250;&#34987;&#37325;&#23450;&#21521;&#21040;&#36825;&#20010;&#35774;&#22791;</span><span style="color: #b22222;">*/</span>
+<span style="color: #fa8072;">#endif</span>
 
-    fsmc_gpio_init();<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#37197;&#32622;&#28082;&#26230;&#23631;&#25511;&#21046;&#22120;</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    fsmc_gpio_init();<span style="color: #b22222;">/*</span><span style="color: #b22222;">&#37197;&#32622;&#28082;&#26230;&#23631;&#25511;&#21046;&#22120;</span><span style="color: #b22222;">*/</span>
 
-    mco_config();<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#37197;&#32622;&#26230;&#25391;</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    mco_config();<span style="color: #b22222;">/*</span><span style="color: #b22222;">&#37197;&#32622;&#26230;&#25391;</span><span style="color: #b22222;">*/</span>
 }
 </pre>
 
@@ -581,31 +581,31 @@ Target Options&hellip; -&gt; Utilities-&gt;Settings-&gt;Programming Algorithm选
 
 
 <pre class="src src-c">
-<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">rt_system_scheduler_init</span>(<span style="color: #9acd32; font-weight: bold;">void</span>)
+<span style="color: #228b22;">void</span> <span style="color: #0000ff;">rt_system_scheduler_init</span>(<span style="color: #228b22;">void</span>)
 {
-    <span style="color: #add8e6; font-weight: bold;">register</span> <span style="color: #9acd32; font-weight: bold;">rt_base_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">offset</span>;
+    <span style="color: #a020f0;">register</span> <span style="color: #228b22;">rt_base_t</span> <span style="color: #b8860b;">offset</span>;
 
     rt_scheduler_lock_nest = 0;
 
     RT_DEBUG_LOG(RT_DEBUG_SCHEDULER, 
-      (<span style="color: #8fbc8f; font-style: italic;">"start scheduler: max priority 0X%02x\n"</span>, RT_THREAD_PRIORITY_MAX));
+      (<span style="color: #bc8f8f;">"start scheduler: max priority 0X%02x\n"</span>, RT_THREAD_PRIORITY_MAX));
 
-    <span style="color: #add8e6; font-weight: bold;">for</span> (offset = 0; offset &lt; RT_THREAD_PRIORITY_MAX; offset++) {
+    <span style="color: #a020f0;">for</span> (offset = 0; offset &lt; RT_THREAD_PRIORITY_MAX; offset++) {
         rt_list_init(&amp;rt_thread_priority_table[offset]);
     }
 
     rt_current_priority = RT_THREAD_PRIORITY_MAX - 1;
     rt_current_thread = RT_NULL;
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">initialize ready priority group</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">initialize ready priority group</span><span style="color: #b22222;">*/</span>
     rt_thread_ready_priority_group = 0;
 
-<span style="color: #0000cd;">#if</span> RT_THREAD_PRIORITY_MAX &gt; 32
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">initialize ready table </span><span style="color: #cccccc; font-style: italic;">*/</span>
-    rt_memset(rt_thread_ready_table, 0, <span style="color: #add8e6; font-weight: bold;">sizeof</span>(rt_thread_ready_table));
-<span style="color: #0000cd;">#endif</span>
+<span style="color: #fa8072;">#if</span> RT_THREAD_PRIORITY_MAX &gt; 32
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">initialize ready table </span><span style="color: #b22222;">*/</span>
+    rt_memset(rt_thread_ready_table, 0, <span style="color: #a020f0;">sizeof</span>(rt_thread_ready_table));
+<span style="color: #fa8072;">#endif</span>
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">initialize thread defunct</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">initialize thread defunct</span><span style="color: #b22222;">*/</span>
     rt_list_init(&amp;rt_thread_defunct);
 }
 </pre>
@@ -625,24 +625,24 @@ rtservice.h
 
 
 <pre class="src src-c">
-rt_inline <span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">rt_list_init</span>(<span style="color: #9acd32; font-weight: bold;">rt_list_t</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">l</span>)
+rt_inline <span style="color: #228b22;">void</span> <span style="color: #0000ff;">rt_list_init</span>(<span style="color: #228b22;">rt_list_t</span> *<span style="color: #b8860b;">l</span>)
 {
     l-&gt;next = l-&gt;prev = l;
 }
-<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#19968;&#20010;&#25351;&#21521;&#33258;&#24049;&#30340;&#38142;&#34920;&#65292;&#36824;&#26159;&#21452;&#21521;&#38142;&#34920;</span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #b22222;">/*</span><span style="color: #b22222;">&#19968;&#20010;&#25351;&#21521;&#33258;&#24049;&#30340;&#38142;&#34920;&#65292;&#36824;&#26159;&#21452;&#21521;&#38142;&#34920;</span><span style="color: #b22222;">*/</span>
 </pre>
 
 
 
 
 <pre class="src src-c">
-<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_list_node</span>
+<span style="color: #a020f0;">struct</span> <span style="color: #228b22;">rt_list_node</span>
 {
-    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_list_node</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">next</span>;
-    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_lsit_node</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">prev</span>;
+    <span style="color: #a020f0;">struct</span> <span style="color: #228b22;">rt_list_node</span> *<span style="color: #b8860b;">next</span>;
+    <span style="color: #a020f0;">struct</span> <span style="color: #228b22;">rt_lsit_node</span> *<span style="color: #b8860b;">prev</span>;
 };
-<span style="color: #add8e6; font-weight: bold;">typedef</span> <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_list_node</span> <span style="color: #9acd32; font-weight: bold;">rt_list_t</span>;
-<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#23450;&#20041;&#20102;&#19968;&#20010;&#38142;&#34920;&#20013;&#30340;&#19968;&#20010;&#33410;&#28857;</span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #a020f0;">typedef</span> <span style="color: #a020f0;">struct</span> <span style="color: #228b22;">rt_list_node</span> <span style="color: #228b22;">rt_list_t</span>;
+<span style="color: #b22222;">/*</span><span style="color: #b22222;">&#23450;&#20041;&#20102;&#19968;&#20010;&#38142;&#34920;&#20013;&#30340;&#19968;&#20010;&#33410;&#28857;</span><span style="color: #b22222;">*/</span>
 </pre>
 
 
@@ -683,23 +683,23 @@ application则是创建线程，也先不管。
 
 
 <pre class="src src-c">
-<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">rt_system_timer_thread_init</span>(<span style="color: #9acd32; font-weight: bold;">void</span>)
+<span style="color: #228b22;">void</span> <span style="color: #0000ff;">rt_system_timer_thread_init</span>(<span style="color: #228b22;">void</span>)
 {
-<span style="color: #0000cd;">#ifdef</span> RT_USING_TIMER_SOFT
+<span style="color: #fa8072;">#ifdef</span> RT_USING_TIMER_SOFT
     rt_list_init(&amp;rt_soft_timer_list);
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">start software timer thread</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">start software timer thread</span><span style="color: #b22222;">*/</span>
     rt_thread_init(&amp;timer_thread,
-             <span style="color: #8fbc8f; font-style: italic;">"timer"</span>,
+             <span style="color: #bc8f8f;">"timer"</span>,
              rt_thread_timer_entry, RT_NULL,
-             &amp;timer_thread_stack =[0]=, <span style="color: #add8e6; font-weight: bold;">sizeof</span>(timer_thread_stack),
+             &amp;timer_thread_stack =[0]=, <span style="color: #a020f0;">sizeof</span>(timer_thread_stack),
              RT_TIMER_THREAD_PRIO, 10);
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">startup</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">startup</span><span style="color: #b22222;">*/</span>
     rt_thread_startup(&amp;timer_thread);
-<span style="color: #0000cd;">#endif</span>
+<span style="color: #fa8072;">#endif</span>
 }
-<span style="color: #0000cd;">#END_SRC</span>
+<span style="color: #fa8072;">#END_SRC</span>
 
 &#23450;&#20041;&#20102;&#19968;&#20010;&#36719;&#23450;&#26102;&#22120;&#21452;&#21521;&#38142;&#34920; =rt_soft_timer_list=
 
@@ -714,50 +714,50 @@ application则是创建线程，也先不管。
 &#25105;&#23545;object&#26242;&#26102;&#36824;&#19981;&#24819;&#30896;&#65292;&#20808;&#28145;&#31350;&#20197;&#19979; =_rt_thread_init= &#20989;&#25968;
 
 #+BEGIN_SRC c
-<span style="color: #add8e6; font-weight: bold;">static</span> rt_err_t _rt_thread_init(<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_thread</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">thread</span>,
-                                <span style="color: #add8e6; font-weight: bold;">const</span> <span style="color: #9acd32; font-weight: bold;">char</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">name</span>,
-                                <span style="color: #9acd32; font-weight: bold;">void</span> (*<span style="color: #add8e6; font-weight: bold; font-style: italic;">entry</span>)(<span style="color: #9acd32; font-weight: bold;">void</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">parameter</span>),
-                                <span style="color: #9acd32; font-weight: bold;">void</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">parameter</span>,
-                                <span style="color: #9acd32; font-weight: bold;">void</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">stack_start</span>,
-                                <span style="color: #9acd32; font-weight: bold;">rt_uint32_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">stack_size</span>,
-                                <span style="color: #9acd32; font-weight: bold;">rt_uint8_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">priority</span>, 
-                                <span style="color: #9acd32; font-weight: bold;">rt_uint32_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">tick</span>)
+<span style="color: #a020f0;">static</span> rt_err_t _rt_thread_init(<span style="color: #a020f0;">struct</span> <span style="color: #228b22;">rt_thread</span> *<span style="color: #b8860b;">thread</span>,
+                                <span style="color: #a020f0;">const</span> <span style="color: #228b22;">char</span> *<span style="color: #b8860b;">name</span>,
+                                <span style="color: #228b22;">void</span> (*<span style="color: #b8860b;">entry</span>)(<span style="color: #228b22;">void</span> *<span style="color: #b8860b;">parameter</span>),
+                                <span style="color: #228b22;">void</span> *<span style="color: #b8860b;">parameter</span>,
+                                <span style="color: #228b22;">void</span> *<span style="color: #b8860b;">stack_start</span>,
+                                <span style="color: #228b22;">rt_uint32_t</span> <span style="color: #b8860b;">stack_size</span>,
+                                <span style="color: #228b22;">rt_uint8_t</span> <span style="color: #b8860b;">priority</span>, 
+                                <span style="color: #228b22;">rt_uint32_t</span> <span style="color: #b8860b;">tick</span>)
 {
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">init thread list</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">init thread list</span><span style="color: #b22222;">*/</span>
     rt_list_init(&amp;(thread-&gt;tlist));
 
-    thread-&gt;entry = (<span style="color: #9acd32; font-weight: bold;">void</span>*)entry;
+    thread-&gt;entry = (<span style="color: #228b22;">void</span>*)entry;
     thread-&gt;parameter = parameter;
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">stack init</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">stack init</span><span style="color: #b22222;">*/</span>
     thread-&gt;stack_addr = stack_start;
     thread-&gt;stack_size = stack_size;
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">init thread stack</span><span style="color: #cccccc; font-style: italic;">*/</span>
-    rt_memset(thread-&gt;stack_addr, <span style="color: #8fbc8f; font-style: italic;">'#'</span>, thread-&gt;stack_size);
-    thread-&gt;sp = (<span style="color: #9acd32; font-weight: bold;">void</span>*)rt_hw_stack_init(thread-&gt;entry, thread-&gt;parameter,
-                                          (<span style="color: #9acd32; font-weight: bold;">void</span>*)((<span style="color: #9acd32; font-weight: bold;">char</span>*)thread-&gt;stack_addr
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">init thread stack</span><span style="color: #b22222;">*/</span>
+    rt_memset(thread-&gt;stack_addr, <span style="color: #bc8f8f;">'#'</span>, thread-&gt;stack_size);
+    thread-&gt;sp = (<span style="color: #228b22;">void</span>*)rt_hw_stack_init(thread-&gt;entry, thread-&gt;parameter,
+                                          (<span style="color: #228b22;">void</span>*)((<span style="color: #228b22;">char</span>*)thread-&gt;stack_addr
                                          +thread-&gt;stack_size - 4),
-                                         (<span style="color: #9acd32; font-weight: bold;">void</span>*)rt_thread_exit);
+                                         (<span style="color: #228b22;">void</span>*)rt_thread_exit);
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">priority init</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">priority init</span><span style="color: #b22222;">*/</span>
     RT_ASSERT(priority &lt; RT_THREAD_PRIORITY_MAX);
     thread-&gt;init_priority = priority;
     thread-&gt;current_priority = priority;
 
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">tick init </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">tick init </span><span style="color: #b22222;">*/</span>
     thread-&gt;init_ick = tick;
     thread-&gt;remaining_tick = tick;
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">error and flags</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">error and flags</span><span style="color: #b22222;">*/</span>
     thread-&gt;error = RT_EOK;
     thread-&gt;stat = RT_THREAD_INIT;
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">initialize cleanup function and user data</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">initialize cleanup function and user data</span><span style="color: #b22222;">*/</span>
     thread-&gt;cleanup = 0;
     thread-&gt;user_data = 0;
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">init thread timer</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">init thread timer</span><span style="color: #b22222;">*/</span>
     rt_timer_init(&amp;(thread-&gt;thread_tiemr),
                   thread-&gt;name,
                   rt_thread_timeout,
@@ -765,7 +765,7 @@ application则是创建线程，也先不管。
                   0,
                   RT_TIMER_FLAG_ONE_SHOT);
 
-    <span style="color: #add8e6; font-weight: bold;">return</span> RT_EOK;
+    <span style="color: #a020f0;">return</span> RT_EOK;
 }
 </pre>
 
@@ -780,57 +780,57 @@ application则是创建线程，也先不管。
 
 
 <pre class="src src-c">
-<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_thread</span>
+<span style="color: #a020f0;">struct</span> <span style="color: #228b22;">rt_thread</span>
 {
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">rt object</span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #9acd32; font-weight: bold;">char</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">name</span>[RT_NAME_MAX]; <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#30340;&#21517;&#23383; </span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #9acd32; font-weight: bold;">rt_uint8_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">type</span>;        <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">&#23545;&#35937;&#30340;&#31867;&#22411; </span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #9acd32; font-weight: bold;">rt_uint8_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">flags</span>;       <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#30340;&#26631;&#24535; </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">rt object</span><span style="color: #b22222;">*/</span>
+    <span style="color: #228b22;">char</span> <span style="color: #b8860b;">name</span>[RT_NAME_MAX]; <span style="color: #b22222;">/* </span><span style="color: #b22222;">&#32447;&#31243;&#30340;&#21517;&#23383; </span><span style="color: #b22222;">*/</span>
+    <span style="color: #228b22;">rt_uint8_t</span> <span style="color: #b8860b;">type</span>;        <span style="color: #b22222;">/* </span><span style="color: #b22222;">&#23545;&#35937;&#30340;&#31867;&#22411; </span><span style="color: #b22222;">*/</span>
+    <span style="color: #228b22;">rt_uint8_t</span> <span style="color: #b8860b;">flags</span>;       <span style="color: #b22222;">/* </span><span style="color: #b22222;">&#32447;&#31243;&#30340;&#26631;&#24535; </span><span style="color: #b22222;">*/</span>
 
-<span style="color: #0000cd;">#ifdef</span> RT_USING_MODULE
-    <span style="color: #9acd32; font-weight: bold;">void</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">module_id</span>;        <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">&#24212;&#29992;&#27169;&#22359;&#30340;id </span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #0000cd;">#endif</span>
+<span style="color: #fa8072;">#ifdef</span> RT_USING_MODULE
+    <span style="color: #228b22;">void</span> *<span style="color: #b8860b;">module_id</span>;        <span style="color: #b22222;">/* </span><span style="color: #b22222;">&#24212;&#29992;&#27169;&#22359;&#30340;id </span><span style="color: #b22222;">*/</span>
+<span style="color: #fa8072;">#endif</span>
 
-    <span style="color: #9acd32; font-weight: bold;">rt_list_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">list</span>;         <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">&#23545;&#35937;&#21015;&#34920; </span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #9acd32; font-weight: bold;">rt_list_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">tlist</span>;        <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#21015;&#34920; </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #228b22;">rt_list_t</span> <span style="color: #b8860b;">list</span>;         <span style="color: #b22222;">/* </span><span style="color: #b22222;">&#23545;&#35937;&#21015;&#34920; </span><span style="color: #b22222;">*/</span>
+    <span style="color: #228b22;">rt_list_t</span> <span style="color: #b8860b;">tlist</span>;        <span style="color: #b22222;">/* </span><span style="color: #b22222;">&#32447;&#31243;&#21015;&#34920; </span><span style="color: #b22222;">*/</span>
 
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">&#26632;&#25351;&#38024;&#21644;&#20837;&#21475; </span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #9acd32; font-weight: bold;">void</span>    *<span style="color: #add8e6; font-weight: bold; font-style: italic;">sp</span>;            <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#26632;&#25351;&#38024;</span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #9acd32; font-weight: bold;">void</span>    *<span style="color: #add8e6; font-weight: bold; font-style: italic;">entry</span>;         <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#20837;&#21475;</span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #9acd32; font-weight: bold;">void</span>    *<span style="color: #add8e6; font-weight: bold; font-style: italic;">parameter</span>;     <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#21442;&#25968;</span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #9acd32; font-weight: bold;">void</span>    *<span style="color: #add8e6; font-weight: bold; font-style: italic;">stack_addr</span>;    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#26632;&#22320;&#22336;</span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #9acd32; font-weight: bold;">rt_uint16_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">stack_size</span>; <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#26632;&#22823;&#23567;</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">&#26632;&#25351;&#38024;&#21644;&#20837;&#21475; </span><span style="color: #b22222;">*/</span>
+    <span style="color: #228b22;">void</span>    *<span style="color: #b8860b;">sp</span>;            <span style="color: #b22222;">/*</span><span style="color: #b22222;">&#26632;&#25351;&#38024;</span><span style="color: #b22222;">*/</span>
+    <span style="color: #228b22;">void</span>    *<span style="color: #b8860b;">entry</span>;         <span style="color: #b22222;">/*</span><span style="color: #b22222;">&#20837;&#21475;</span><span style="color: #b22222;">*/</span>
+    <span style="color: #228b22;">void</span>    *<span style="color: #b8860b;">parameter</span>;     <span style="color: #b22222;">/*</span><span style="color: #b22222;">&#21442;&#25968;</span><span style="color: #b22222;">*/</span>
+    <span style="color: #228b22;">void</span>    *<span style="color: #b8860b;">stack_addr</span>;    <span style="color: #b22222;">/*</span><span style="color: #b22222;">&#26632;&#22320;&#22336;</span><span style="color: #b22222;">*/</span>
+    <span style="color: #228b22;">rt_uint16_t</span> <span style="color: #b8860b;">stack_size</span>; <span style="color: #b22222;">/*</span><span style="color: #b22222;">&#26632;&#22823;&#23567;</span><span style="color: #b22222;">*/</span>
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">error code</span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #9acd32; font-weight: bold;">rt_err_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">error</span>;         <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#38169;&#35823;&#30721;</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">error code</span><span style="color: #b22222;">*/</span>
+    <span style="color: #228b22;">rt_err_t</span> <span style="color: #b8860b;">error</span>;         <span style="color: #b22222;">/*</span><span style="color: #b22222;">&#38169;&#35823;&#30721;</span><span style="color: #b22222;">*/</span>
 
-    <span style="color: #9acd32; font-weight: bold;">rt_uint8_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">stat</span>;        <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#29366;&#24577;</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #228b22;">rt_uint8_t</span> <span style="color: #b8860b;">stat</span>;        <span style="color: #b22222;">/*</span><span style="color: #b22222;">&#32447;&#31243;&#29366;&#24577;</span><span style="color: #b22222;">*/</span>
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#23646;&#24615;</span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #9acd32; font-weight: bold;">rt_uint8_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">current_priority</span>;    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#24403;&#21069;&#20248;&#20808;&#32423;</span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #9acd32; font-weight: bold;">rt_uint8_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">init_priority</span>;       <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#21021;&#22987;&#21270;&#20248;&#20808;&#32423;</span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #0000cd;">#if</span> RT_THREAD_PRIORITY_MAX &gt; 32
-    <span style="color: #9acd32; font-weight: bold;">rt_uint8_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">number</span>;
-    <span style="color: #9acd32; font-weight: bold;">rt_uint8_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">high_mask</span>;
-<span style="color: #0000cd;">#endif</span>
-    <span style="color: #9acd32; font-weight: bold;">rt_uint32_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">number_mask</span>;
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">&#23646;&#24615;</span><span style="color: #b22222;">*/</span>
+    <span style="color: #228b22;">rt_uint8_t</span> <span style="color: #b8860b;">current_priority</span>;    <span style="color: #b22222;">/*</span><span style="color: #b22222;">&#24403;&#21069;&#20248;&#20808;&#32423;</span><span style="color: #b22222;">*/</span>
+    <span style="color: #228b22;">rt_uint8_t</span> <span style="color: #b8860b;">init_priority</span>;       <span style="color: #b22222;">/*</span><span style="color: #b22222;">&#21021;&#22987;&#21270;&#20248;&#20808;&#32423;</span><span style="color: #b22222;">*/</span>
+<span style="color: #fa8072;">#if</span> RT_THREAD_PRIORITY_MAX &gt; 32
+    <span style="color: #228b22;">rt_uint8_t</span> <span style="color: #b8860b;">number</span>;
+    <span style="color: #228b22;">rt_uint8_t</span> <span style="color: #b8860b;">high_mask</span>;
+<span style="color: #fa8072;">#endif</span>
+    <span style="color: #228b22;">rt_uint32_t</span> <span style="color: #b8860b;">number_mask</span>;
 
-<span style="color: #0000cd;">#if</span> <span style="color: #0000cd;">defined</span>(RT_USING_EVENT)
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">thread event</span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #9acd32; font-weight: bold;">rt_uint32_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">event_set</span>;
-    <span style="color: #9acd32; font-weight: bold;">rt_uint8_t</span>  <span style="color: #add8e6; font-weight: bold; font-style: italic;">event_info</span>;
-<span style="color: #0000cd;">#endif</span>
+<span style="color: #fa8072;">#if</span> <span style="color: #fa8072;">defined</span>(RT_USING_EVENT)
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">thread event</span><span style="color: #b22222;">*/</span>
+    <span style="color: #228b22;">rt_uint32_t</span> <span style="color: #b8860b;">event_set</span>;
+    <span style="color: #228b22;">rt_uint8_t</span>  <span style="color: #b8860b;">event_info</span>;
+<span style="color: #fa8072;">#endif</span>
 
-    <span style="color: #9acd32; font-weight: bold;">rt_ubase_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">init_tick</span>;  <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#30340;&#21021;&#22987;&#21270;&#30340;tick</span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #9acd32; font-weight: bold;">rt_ubase_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">remaining_tick</span>; <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#21097;&#19979;&#30340;tick</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #228b22;">rt_ubase_t</span> <span style="color: #b8860b;">init_tick</span>;  <span style="color: #b22222;">/*</span><span style="color: #b22222;">&#32447;&#31243;&#30340;&#21021;&#22987;&#21270;&#30340;tick</span><span style="color: #b22222;">*/</span>
+    <span style="color: #228b22;">rt_ubase_t</span> <span style="color: #b8860b;">remaining_tick</span>; <span style="color: #b22222;">/*</span><span style="color: #b22222;">&#21097;&#19979;&#30340;tick</span><span style="color: #b22222;">*/</span>
 
-    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_timer</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">thread_timer</span>; <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">&#20869;&#24314;&#32447;&#31243;&#23450;&#26102;&#22120;</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #a020f0;">struct</span> <span style="color: #228b22;">rt_timer</span> <span style="color: #b8860b;">thread_timer</span>; <span style="color: #b22222;">/*</span><span style="color: #b22222;">&#20869;&#24314;&#32447;&#31243;&#23450;&#26102;&#22120;</span><span style="color: #b22222;">*/</span>
 
-    <span style="color: #9acd32; font-weight: bold;">void</span> (*<span style="color: #ffff00; font-weight: bold; font-style: italic;">cleanup</span>)(<span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_thread</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">tid</span>); <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">&#24403;&#32447;&#31243;&#36864;&#20986;&#30340;&#26102;&#20505;&#30340;&#28165;&#29702;&#20989;&#25968; </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #228b22;">void</span> (*<span style="color: #0000ff;">cleanup</span>)(<span style="color: #a020f0;">struct</span> <span style="color: #228b22;">rt_thread</span> *<span style="color: #b8860b;">tid</span>); <span style="color: #b22222;">/* </span><span style="color: #b22222;">&#24403;&#32447;&#31243;&#36864;&#20986;&#30340;&#26102;&#20505;&#30340;&#28165;&#29702;&#20989;&#25968; </span><span style="color: #b22222;">*/</span>
 
-    <span style="color: #9acd32; font-weight: bold;">rt_uint32_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">user_data</span>; <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">&#36825;&#20010;&#32447;&#31243;&#30340;&#31169;&#26377;&#29992;&#25143;&#25968;&#25454; </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #228b22;">rt_uint32_t</span> <span style="color: #b8860b;">user_data</span>; <span style="color: #b22222;">/* </span><span style="color: #b22222;">&#36825;&#20010;&#32447;&#31243;&#30340;&#31169;&#26377;&#29992;&#25143;&#25968;&#25454; </span><span style="color: #b22222;">*/</span>
 };
-<span style="color: #add8e6; font-weight: bold;">typedef</span> <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_thread</span> *<span style="color: #9acd32; font-weight: bold;">rt_thread_t</span>;
+<span style="color: #a020f0;">typedef</span> <span style="color: #a020f0;">struct</span> <span style="color: #228b22;">rt_thread</span> *<span style="color: #228b22;">rt_thread_t</span>;
 </pre>
 
 
@@ -868,43 +868,43 @@ scheduler.c
 
 
 <pre class="src src-c">
-<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">rt_system_scheduler_start</span>(<span style="color: #9acd32; font-weight: bold;">void</span>)
+<span style="color: #228b22;">void</span> <span style="color: #0000ff;">rt_system_scheduler_start</span>(<span style="color: #228b22;">void</span>)
 {
-    <span style="color: #add8e6; font-weight: bold;">register</span> <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_thread</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">to_thread</span>;
-    <span style="color: #add8e6; font-weight: bold;">register</span> <span style="color: #9acd32; font-weight: bold;">rt_ubase_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">highest_ready_priority</span>;
+    <span style="color: #a020f0;">register</span> <span style="color: #a020f0;">struct</span> <span style="color: #228b22;">rt_thread</span> *<span style="color: #b8860b;">to_thread</span>;
+    <span style="color: #a020f0;">register</span> <span style="color: #228b22;">rt_ubase_t</span> <span style="color: #b8860b;">highest_ready_priority</span>;
     
-<span style="color: #0000cd;">#if</span> RT_THREAD_PRIORITY_MAX == 8
+<span style="color: #fa8072;">#if</span> RT_THREAD_PRIORITY_MAX == 8
     highest_ready_priority = rt_lowest_bitmap[rt_thread_ready_priority_group];
-<span style="color: #0000cd;">#endif</span>
-    <span style="color: #add8e6; font-weight: bold;">register</span> <span style="color: #9acd32; font-weight: bold;">rt_ubase_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">number</span>;
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">find out the highest priority task</span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #add8e6; font-weight: bold;">if</span> (rt_thread_ready_priority_group &amp; 0xff) {
+<span style="color: #fa8072;">#endif</span>
+    <span style="color: #a020f0;">register</span> <span style="color: #228b22;">rt_ubase_t</span> <span style="color: #b8860b;">number</span>;
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">find out the highest priority task</span><span style="color: #b22222;">*/</span>
+    <span style="color: #a020f0;">if</span> (rt_thread_ready_priority_group &amp; 0xff) {
         number = rt_lowest_bitmap[rt_thread_ready_priority_group &amp; 0xff];
-    } <span style="color: #add8e6; font-weight: bold;">else</span> <span style="color: #add8e6; font-weight: bold;">if</span> (rt_thread_ready_priority_group &amp; 0xff00) {
+    } <span style="color: #a020f0;">else</span> <span style="color: #a020f0;">if</span> (rt_thread_ready_priority_group &amp; 0xff00) {
         number = rt_lowest_bitmap[(rt_thread_ready_priority_group &gt;&gt; 8) &amp; 0xff + 8;
-    } <span style="color: #add8e6; font-weight: bold;">else</span> <span style="color: #add8e6; font-weight: bold;">if</span> (rt_thread_ready_priority_group &amp; 0xff0000) {
+    } <span style="color: #a020f0;">else</span> <span style="color: #a020f0;">if</span> (rt_thread_ready_priority_group &amp; 0xff0000) {
        number = rt_lowest_bitmap[(rt_thread_ready_priority_group &gt;&gt; 16) &amp; 0xff]+ 16;
-    } <span style="color: #add8e6; font-weight: bold;">else</span> {
+    } <span style="color: #a020f0;">else</span> {
        number = rt_lowest_bitmap[(rt_thread_ready_priority_group &gt;&gt; 24) &amp; 0xff] + 24;
     }
 
-<span style="color: #0000cd;">#if</span> RT_THREAD_PRIORITY_MAX &gt; 32
+<span style="color: #fa8072;">#if</span> RT_THREAD_PRIORITY_MAX &gt; 32
     highest_ready_priority = (number &lt;&lt; 3) + rt_lowest_bitmap[rt_thread_ready_table[number]];
-<span style="color: #0000cd;">#else</span>
+<span style="color: #fa8072;">#else</span>
     highest_ready_priority = number;
-<span style="color: #0000cd;">#endif</span>
-<span style="color: #0000cd;">#endif</span>
+<span style="color: #fa8072;">#endif</span>
+<span style="color: #fa8072;">#endif</span>
     
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">get switch to thread </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">get switch to thread </span><span style="color: #b22222;">*/</span>
     to_thread = rt_list_entry(rt_thread_priority_table[highest_ready_priority].next,
-                              <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_thread</span>, tlist);
+                              <span style="color: #a020f0;">struct</span> <span style="color: #228b22;">rt_thread</span>, tlist);
 
     rt_current_thread = to_thread;
 
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">switch to new thread </span><span style="color: #cccccc; font-style: italic;">*/</span>
-    rt_hw_context_switch_to((<span style="color: #9acd32; font-weight: bold;">rt_uint32_t</span>)&amp;to_thread-&gt;sp);
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">switch to new thread </span><span style="color: #b22222;">*/</span>
+    rt_hw_context_switch_to((<span style="color: #228b22;">rt_uint32_t</span>)&amp;to_thread-&gt;sp);
 
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">never come back </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">never come back </span><span style="color: #b22222;">*/</span>
 }
 </pre>
 
@@ -956,9 +956,9 @@ r0用来存放to参数，这个函数用来处理第一个线程交换。没太�
 
 
 <pre class="src src-sh">
-<span style="color: #add8e6; font-weight: bold; font-style: italic;">rt_thread_ready_priority_group</span>=80000400
-<span style="color: #add8e6; font-weight: bold; font-style: italic;">number</span>=a
-<span style="color: #add8e6; font-weight: bold; font-style: italic;">highest_ready_priority</span>=a
+<span style="color: #b8860b;">rt_thread_ready_priority_group</span>=80000400
+<span style="color: #b8860b;">number</span>=a
+<span style="color: #b8860b;">highest_ready_priority</span>=a
 </pre>
 
 
@@ -976,12 +976,12 @@ r0用来存放to参数，这个函数用来处理第一个线程交换。没太�
 
 
 <pre class="src src-c">
-rt_thread_create(<span style="color: #8fbc8f; font-style: italic;">"init"</span>,                        <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#30340;&#21517;&#23383;
-</span>                  rt_init_thread_entry,         <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#30340;&#20837;&#21475;&#20989;&#25968;
-</span>                  RT_NULL,                      <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#20837;&#21475;&#20989;&#25968;&#30340;&#21442;&#25968;
-</span>                  2048,                         <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#26632;&#30340;&#22823;&#23567;
-</span>                  RT_THREAD_PRIORITY_MAX/3,     <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#30340;&#20248;&#20808;&#32423;
-</span>                  20);                          <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#21516;&#26679;&#20248;&#20808;&#32423;&#24773;&#20917;&#19979;&#30340;&#20998;&#37197;&#30340;&#26102;&#38388;&#29255;
+rt_thread_create(<span style="color: #bc8f8f;">"init"</span>,                        <span style="color: #b22222;">//</span><span style="color: #b22222;">&#32447;&#31243;&#30340;&#21517;&#23383;
+</span>                  rt_init_thread_entry,         <span style="color: #b22222;">//</span><span style="color: #b22222;">&#32447;&#31243;&#30340;&#20837;&#21475;&#20989;&#25968;
+</span>                  RT_NULL,                      <span style="color: #b22222;">//</span><span style="color: #b22222;">&#20837;&#21475;&#20989;&#25968;&#30340;&#21442;&#25968;
+</span>                  2048,                         <span style="color: #b22222;">//</span><span style="color: #b22222;">&#32447;&#31243;&#26632;&#30340;&#22823;&#23567;
+</span>                  RT_THREAD_PRIORITY_MAX/3,     <span style="color: #b22222;">//</span><span style="color: #b22222;">&#32447;&#31243;&#30340;&#20248;&#20808;&#32423;
+</span>                  20);                          <span style="color: #b22222;">//</span><span style="color: #b22222;">&#21516;&#26679;&#20248;&#20808;&#32423;&#24773;&#20917;&#19979;&#30340;&#20998;&#37197;&#30340;&#26102;&#38388;&#29255;
 </span></pre>
 
 
@@ -989,14 +989,14 @@ rt_thread_create(<span style="color: #8fbc8f; font-style: italic;">"init"</span>
 
 
 <pre class="src src-c">
-rt_thread_init(&amp;timer_thread,                   <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#38745;&#24577;&#32447;&#31243;&#23545;&#35937;
-</span>               <span style="color: #8fbc8f; font-style: italic;">"tiemr"</span>,                         <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#21517;&#23383;
-</span>               rt_thread_timer_entry,           <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#20989;&#25968;&#20837;&#21475;
-</span>               RT_NULL,                         <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#20989;&#25968;&#21442;&#25968;
-</span>               &amp;timer_thread_stack[0],          <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#26632;&#24320;&#22987;&#22320;&#22336;
-</span>               <span style="color: #add8e6; font-weight: bold;">sizeof</span>(timer_thread_stack),      <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#26632;&#22823;&#23567;
-</span>               RT_TIMER_THREAD_PRIO,            <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#20248;&#20808;&#32423;
-</span>               10)                              <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#26102;&#38388;&#29255;
+rt_thread_init(&amp;timer_thread,                   <span style="color: #b22222;">//</span><span style="color: #b22222;">&#38745;&#24577;&#32447;&#31243;&#23545;&#35937;
+</span>               <span style="color: #bc8f8f;">"tiemr"</span>,                         <span style="color: #b22222;">//</span><span style="color: #b22222;">&#32447;&#31243;&#21517;&#23383;
+</span>               rt_thread_timer_entry,           <span style="color: #b22222;">//</span><span style="color: #b22222;">&#32447;&#31243;&#20989;&#25968;&#20837;&#21475;
+</span>               RT_NULL,                         <span style="color: #b22222;">//</span><span style="color: #b22222;">&#32447;&#31243;&#20989;&#25968;&#21442;&#25968;
+</span>               &amp;timer_thread_stack[0],          <span style="color: #b22222;">//</span><span style="color: #b22222;">&#32447;&#31243;&#26632;&#24320;&#22987;&#22320;&#22336;
+</span>               <span style="color: #a020f0;">sizeof</span>(timer_thread_stack),      <span style="color: #b22222;">//</span><span style="color: #b22222;">&#32447;&#31243;&#26632;&#22823;&#23567;
+</span>               RT_TIMER_THREAD_PRIO,            <span style="color: #b22222;">//</span><span style="color: #b22222;">&#32447;&#31243;&#20248;&#20808;&#32423;
+</span>               10)                              <span style="color: #b22222;">//</span><span style="color: #b22222;">&#26102;&#38388;&#29255;
 </span></pre>
 
 
@@ -1005,11 +1005,11 @@ rt_thread_init(&amp;timer_thread,                   <span style="color: #cccccc;
 
 <pre class="src src-c">
 rt_thread_init(&amp;idle,
-               <span style="color: #8fbc8f; font-style: italic;">"tidle"</span>,
+               <span style="color: #bc8f8f;">"tidle"</span>,
                rt_thread_idle_entry,
                RT_NULL,
                &amp;rt_thread_stack[0],
-               <span style="color: #add8e6; font-weight: bold;">sizeof</span>(rt_thread_stack),
+               <span style="color: #a020f0;">sizeof</span>(rt_thread_stack),
                RT_THREAD_PRIORITY_MAX-1,
                32);
 </pre>
@@ -1065,25 +1065,25 @@ tidle-&gt; <code>rt_thread_idle_entry</code>
 
 
 <pre class="src src-c">
-<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">rt_init_thread_entry</span>(<span style="color: #9acd32; font-weight: bold;">void</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">parameter</span>)
+<span style="color: #228b22;">void</span> <span style="color: #0000ff;">rt_init_thread_entry</span>(<span style="color: #228b22;">void</span> *<span style="color: #b8860b;">parameter</span>)
 {
-<span style="color: #0000cd;">#ifdef</span> RT_USING_COMPONENTS_INIT
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">initialization RT-Thread Components </span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #fa8072;">#ifdef</span> RT_USING_COMPONENTS_INIT
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">initialization RT-Thread Components </span><span style="color: #b22222;">*/</span>
     rt_components_init();
-<span style="color: #0000cd;">#endif</span>
+<span style="color: #fa8072;">#endif</span>
     rt_platform_init();
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">Filesystem Initialization </span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #0000cd;">#ifdef</span> RT_USING_DFS
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">mount sd card fat partition 1 as root directory </span><span style="color: #cccccc; font-style: italic;">*/</span>
-    <span style="color: #add8e6; font-weight: bold;">if</span> (dfs_mount(<span style="color: #8fbc8f; font-style: italic;">"sd0"</span>, <span style="color: #8fbc8f; font-style: italic;">"/"</span>, <span style="color: #8fbc8f; font-style: italic;">"elm"</span>, 0, 0)== 0) {
-        rt_kprintf(<span style="color: #8fbc8f; font-style: italic;">"File System initialized!\n"</span>);
-    } <span style="color: #add8e6; font-weight: bold;">else</span>  {
-        rt_kprintf(<span style="color: #8fbc8f; font-style: italic;">"File System initialzation failed!\n"</span>);
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">Filesystem Initialization </span><span style="color: #b22222;">*/</span>
+<span style="color: #fa8072;">#ifdef</span> RT_USING_DFS
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">mount sd card fat partition 1 as root directory </span><span style="color: #b22222;">*/</span>
+    <span style="color: #a020f0;">if</span> (dfs_mount(<span style="color: #bc8f8f;">"sd0"</span>, <span style="color: #bc8f8f;">"/"</span>, <span style="color: #bc8f8f;">"elm"</span>, 0, 0)== 0) {
+        rt_kprintf(<span style="color: #bc8f8f;">"File System initialized!\n"</span>);
+    } <span style="color: #a020f0;">else</span>  {
+        rt_kprintf(<span style="color: #bc8f8f;">"File System initialzation failed!\n"</span>);
     }
-<span style="color: #0000cd;">#endif</span>
-<span style="color: #0000cd;">#ifdef</span> RT_USING_RTGUI
+<span style="color: #fa8072;">#endif</span>
+<span style="color: #fa8072;">#ifdef</span> RT_USING_RTGUI
     realtouch_ui_init();
-<span style="color: #0000cd;">#endif</span>
+<span style="color: #fa8072;">#endif</span>
 }
 </pre>
 
@@ -1098,24 +1098,24 @@ tidle-&gt; <code>rt_thread_idle_entry</code>
 
 
 <pre class="src src-c">
-<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">rt_thread_timer_entry</span>(<span style="color: #9acd32; font-weight: bold;">void</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">parameter</span>)
+<span style="color: #a020f0;">static</span> <span style="color: #228b22;">void</span> <span style="color: #0000ff;">rt_thread_timer_entry</span>(<span style="color: #228b22;">void</span> *<span style="color: #b8860b;">parameter</span>)
 {
-    <span style="color: #9acd32; font-weight: bold;">rt_tick_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">next_timeout</span>;
+    <span style="color: #228b22;">rt_tick_t</span> <span style="color: #b8860b;">next_timeout</span>;
 
-    <span style="color: #add8e6; font-weight: bold;">while</span> (1) {
+    <span style="color: #a020f0;">while</span> (1) {
         next_timeout = rt_timer_list_next_timeout(&amp;rt_soft_timer_list);
-        <span style="color: #add8e6; font-weight: bold;">if</span> (next_timeout == RT_TICK_MAX) {
+        <span style="color: #a020f0;">if</span> (next_timeout == RT_TICK_MAX) {
             rt_thread_suspend(rt_thread_self());
             rt_schedule();
-        } <span style="color: #add8e6; font-weight: bold;">else</span> {
+        } <span style="color: #a020f0;">else</span> {
             rt_thread_delay(next_timeout);
         }
 
-        <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">lock scheduler</span><span style="color: #cccccc; font-style: italic;">*/</span>
+        <span style="color: #b22222;">/*</span><span style="color: #b22222;">lock scheduler</span><span style="color: #b22222;">*/</span>
         rt_enter_critical();
-        <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">check software timer</span><span style="color: #cccccc; font-style: italic;">*/</span>
+        <span style="color: #b22222;">/*</span><span style="color: #b22222;">check software timer</span><span style="color: #b22222;">*/</span>
         rt_soft_timer_check();
-        <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">unlock scheduler</span><span style="color: #cccccc; font-style: italic;">*/</span>
+        <span style="color: #b22222;">/*</span><span style="color: #b22222;">unlock scheduler</span><span style="color: #b22222;">*/</span>
         rt_exit_critical();
     }
 }
@@ -1130,14 +1130,14 @@ tidle-&gt; <code>rt_thread_idle_entry</code>
 
 
 <pre class="src src-c">
-<span style="color: #add8e6; font-weight: bold;">static</span> <span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">rt_thread_idle_entry</span>(<span style="color: #9acd32; font-weight: bold;">void</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">parameter</span>)
+<span style="color: #a020f0;">static</span> <span style="color: #228b22;">void</span> <span style="color: #0000ff;">rt_thread_idle_entry</span>(<span style="color: #228b22;">void</span> *<span style="color: #b8860b;">parameter</span>)
 {
-    <span style="color: #add8e6; font-weight: bold;">while</span> (1) {
-<span style="color: #0000cd;">        #define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">RT_USING_HOOK</span>
-        <span style="color: #add8e6; font-weight: bold;">if</span> (rt_thread_idle_hook != RT_NULL) {
+    <span style="color: #a020f0;">while</span> (1) {
+<span style="color: #fa8072;">        #define</span> <span style="color: #b8860b;">RT_USING_HOOK</span>
+        <span style="color: #a020f0;">if</span> (rt_thread_idle_hook != RT_NULL) {
             rt_thread_idle_hook();
         }
-<span style="color: #0000cd;">        #endif</span>
+<span style="color: #fa8072;">        #endif</span>
         rt_thread_idle_excute();
     }
 }
@@ -1180,9 +1180,9 @@ rtdebug.h里面有好多的宏开关，我们应该尝试打开一下，看一�
 
 
 <pre class="src src-sh">
- <span style="color: #8fbc8f; font-style: italic;">\ </span>| /
+ <span style="color: #bc8f8f;">\ </span>| /
 - RT -     Thread Operating System
- / | <span style="color: #8fbc8f; font-style: italic;">\ </span>    1.1.0 build Sep  6 2012
+ / | <span style="color: #bc8f8f;">\ </span>    1.1.0 build Sep  6 2012
  2006 - 2012 Copyright by rt-thread team
 mem init, heap begin address 0x60000000, size 524264
 start scheduler: max priority 0x20
@@ -1202,9 +1202,9 @@ insert thread[init], the priority: 10
 startup a thread:tidle with priority:31
 thread resume:  tidle
 insert thread[tidle], the priority: 31
-<span style="color: #add8e6; font-weight: bold; font-style: italic;">rt_thread_ready_priority_group</span>=80000400
-<span style="color: #add8e6; font-weight: bold; font-style: italic;">number</span>=a
-<span style="color: #add8e6; font-weight: bold; font-style: italic;">highest_ready_priority</span>=a
+<span style="color: #b8860b;">rt_thread_ready_priority_group</span>=80000400
+<span style="color: #b8860b;">number</span>=a
+<span style="color: #b8860b;">highest_ready_priority</span>=a
 irq coming..., irq nest:0
 timer check enter
 timer check leave
@@ -1235,9 +1235,9 @@ debug全开之后的信息如上所示，以后的信息就更加混乱了，试
 
 
 <pre class="src src-sh">
- <span style="color: #8fbc8f; font-style: italic;">\ </span>| /
+ <span style="color: #bc8f8f;">\ </span>| /
 - RT -     Thread Operating System
- / | <span style="color: #8fbc8f; font-style: italic;">\ </span>    1.1.0 build Sep  6 2012
+ / | <span style="color: #bc8f8f;">\ </span>    1.1.0 build Sep  6 2012
  2006 - 2012 Copyright by rt-thread team
 [scheduler] enter rt_system_scheduler_init
 start scheduler: max priority 0x20
@@ -1251,9 +1251,9 @@ insert thread[init], the priority: 10
 insert thread[tidle], the priority: 31
 [scheduler] leave rt_schedule_insert_thread
 [scheduler] enter rt_system_scheduler_start
-<span style="color: #add8e6; font-weight: bold; font-style: italic;">rt_thread_ready_priority_group</span>=80000400
-<span style="color: #add8e6; font-weight: bold; font-style: italic;">number</span>=a
-<span style="color: #add8e6; font-weight: bold; font-style: italic;">highest_ready_priority</span>=a
+<span style="color: #b8860b;">rt_thread_ready_priority_group</span>=80000400
+<span style="color: #b8860b;">number</span>=a
+<span style="color: #b8860b;">highest_ready_priority</span>=a
 [scheduler] switch-to init
 [init]thread name:tshell priority:14
 [scheduler] enter rt_schedule_insert_thread
@@ -1316,7 +1316,7 @@ rt_thread_init();
 -&gt;leave rt_thread_create();
 rt_thread_startup();
 -&gt;enter rt_thread_startup();
--&gt;print <span style="color: #8fbc8f; font-style: italic;">"startup a thread: init with priority:10"</span>
+-&gt;print <span style="color: #bc8f8f;">"startup a thread: init with priority:10"</span>
 </pre>
 
 
@@ -1437,13 +1437,13 @@ rt_thread_resume(thread);
 
 
 <pre class="src src-c">
-<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">init thread timer -&gt; timer.c</span><span style="color: #cccccc; font-style: italic;">*/</span>
-rt_timer_init(&amp;(thread-&gt;thread_timer), <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#38745;&#24577;&#23450;&#26102;&#22120;&#23545;&#35937;
-</span>              thread-&gt;name,            <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#23450;&#26102;&#22120;&#30340;&#21517;&#23383;
-</span>              rt_thread_timeout,       <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#36229;&#26102;&#20989;&#25968;
-</span>              thread,                  <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#36229;&#26102;&#20989;&#25968;&#30340;&#21442;&#25968;
-</span>              0,                       <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#23450;&#26102;&#22120;&#30340;tick
-</span>              RT_TIMER_FLAG_ONE_SHOT); <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#23450;&#26102;&#22120;&#30340;&#26631;&#24535;&#20301;
+<span style="color: #b22222;">/*</span><span style="color: #b22222;">init thread timer -&gt; timer.c</span><span style="color: #b22222;">*/</span>
+rt_timer_init(&amp;(thread-&gt;thread_timer), <span style="color: #b22222;">//</span><span style="color: #b22222;">&#38745;&#24577;&#23450;&#26102;&#22120;&#23545;&#35937;
+</span>              thread-&gt;name,            <span style="color: #b22222;">//</span><span style="color: #b22222;">&#23450;&#26102;&#22120;&#30340;&#21517;&#23383;
+</span>              rt_thread_timeout,       <span style="color: #b22222;">//</span><span style="color: #b22222;">&#36229;&#26102;&#20989;&#25968;
+</span>              thread,                  <span style="color: #b22222;">//</span><span style="color: #b22222;">&#36229;&#26102;&#20989;&#25968;&#30340;&#21442;&#25968;
+</span>              0,                       <span style="color: #b22222;">//</span><span style="color: #b22222;">&#23450;&#26102;&#22120;&#30340;tick
+</span>              RT_TIMER_FLAG_ONE_SHOT); <span style="color: #b22222;">//</span><span style="color: #b22222;">&#23450;&#26102;&#22120;&#30340;&#26631;&#24535;&#20301;
 </span></pre>
 
 
@@ -1624,21 +1624,21 @@ Program Countrol and Status register.
 
 
 <pre class="src src-c">
-<span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">System Tick Configration
+<span style="color: #b22222;">/* </span><span style="color: #b22222;">System Tick Configration
    This function initialises the system tick timer and its interrupt and start the system tick tiemr.
    Counter is in free running mode to generate periodical interrupts.
- </span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #add8e6; font-weight: bold;">static</span> __INLINE <span style="color: #9acd32; font-weight: bold;">uint32_t</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">SysTick_Confit</span>(<span style="color: #9acd32; font-weight: bold;">uint32_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">ticks</span>)
+ </span><span style="color: #b22222;">*/</span>
+<span style="color: #a020f0;">static</span> __INLINE <span style="color: #228b22;">uint32_t</span> <span style="color: #0000ff;">SysTick_Confit</span>(<span style="color: #228b22;">uint32_t</span> <span style="color: #b8860b;">ticks</span>)
 {
-    <span style="color: #add8e6; font-weight: bold;">if</span> (ticks &gt; SysTick_LOAD_RELOAD_Msk) { <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">Reload value impossible </span><span style="color: #cccccc; font-style: italic;">*/</span>
-        <span style="color: #add8e6; font-weight: bold;">return</span>(1);
+    <span style="color: #a020f0;">if</span> (ticks &gt; SysTick_LOAD_RELOAD_Msk) { <span style="color: #b22222;">/* </span><span style="color: #b22222;">Reload value impossible </span><span style="color: #b22222;">*/</span>
+        <span style="color: #a020f0;">return</span>(1);
     }
-    SysTick-&gt;LOAD = (tick &amp; SysTick_LOAD_RELOAD_Msk) - 1; <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">set reload register</span><span style="color: #cccccc; font-style: italic;">*/</span>
-    NVIC_SetPriority(SysTick_IRQn, (1&lt;&lt;__NVIC_PRIO_BITS)-1);<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">set Priority for Coterx-M0 System Interrupts</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    SysTick-&gt;LOAD = (tick &amp; SysTick_LOAD_RELOAD_Msk) - 1; <span style="color: #b22222;">/*</span><span style="color: #b22222;">set reload register</span><span style="color: #b22222;">*/</span>
+    NVIC_SetPriority(SysTick_IRQn, (1&lt;&lt;__NVIC_PRIO_BITS)-1);<span style="color: #b22222;">/*</span><span style="color: #b22222;">set Priority for Coterx-M0 System Interrupts</span><span style="color: #b22222;">*/</span>
     SysTick-&gt;VAL = 0;
     SysTick-&gt;CTRL = SysTick_CTRL_CLKSOURCE_Msk |
                     SysTick_CTRL_TICKINT_Msk   |
-                    SysTick_CTRL_ENABLE_Msk; <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">Enable SysTick IRQ and SysTick Timer</span><span style="color: #cccccc; font-style: italic;">*/</span>
+                    SysTick_CTRL_ENABLE_Msk; <span style="color: #b22222;">/*</span><span style="color: #b22222;">Enable SysTick IRQ and SysTick Timer</span><span style="color: #b22222;">*/</span>
 }
 </pre>
 
@@ -1647,9 +1647,9 @@ Program Countrol and Status register.
 
 
 <pre class="src src-c">
-<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">SysTick Reload Register Definitions</span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">SysTick_LOAD_RELOAD_Pos</span> 0                                     <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">SysTick LOAD: RELOAD Position</span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">SysTick_LOAD_RELOAD_Msk</span> (0xFFFFFFUL&lt;&lt;SysTick_LOAD_RELOAD_Pos) <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">SysTick LOAD: RELOAD Mask</span><span style="color: #cccccc; font-style: italic;">*/</span>
+<span style="color: #b22222;">/*</span><span style="color: #b22222;">SysTick Reload Register Definitions</span><span style="color: #b22222;">*/</span>
+<span style="color: #fa8072;">#define</span> <span style="color: #b8860b;">SysTick_LOAD_RELOAD_Pos</span> 0                                     <span style="color: #b22222;">/*</span><span style="color: #b22222;">SysTick LOAD: RELOAD Position</span><span style="color: #b22222;">*/</span>
+<span style="color: #fa8072;">#define</span> <span style="color: #b8860b;">SysTick_LOAD_RELOAD_Msk</span> (0xFFFFFFUL&lt;&lt;SysTick_LOAD_RELOAD_Pos) <span style="color: #b22222;">/*</span><span style="color: #b22222;">SysTick LOAD: RELOAD Mask</span><span style="color: #b22222;">*/</span>
 </pre>
 
 
@@ -1676,12 +1676,12 @@ typedef enum IRQn-&gt; <code>SysTick_IRQn</code> = -1 <i>*Cortex-M4 System Tick 
 
 
 <pre class="src src-asm">
-<span style="color: #ffff00; font-weight: bold; font-style: italic;">DCD</span> <span style="color: #add8e6; font-weight: bold;">SysTick</span>_Handler
+<span style="color: #0000ff;">DCD</span> <span style="color: #a020f0;">SysTick</span>_Handler
 
-<span style="color: #ffff00; font-weight: bold; font-style: italic;">SysTick_Handler</span> <span style="color: #add8e6; font-weight: bold;">PROC</span>
-                <span style="color: #add8e6; font-weight: bold;">EXPORT</span> SysTick_Handler [WEAK]
-                <span style="color: #add8e6; font-weight: bold;">B</span>      .
-                <span style="color: #add8e6; font-weight: bold;">ENDP</span>
+<span style="color: #0000ff;">SysTick_Handler</span> <span style="color: #a020f0;">PROC</span>
+                <span style="color: #a020f0;">EXPORT</span> SysTick_Handler [WEAK]
+                <span style="color: #a020f0;">B</span>      .
+                <span style="color: #a020f0;">ENDP</span>
 </pre>
 
 
@@ -1693,7 +1693,7 @@ typedef enum IRQn-&gt; <code>SysTick_IRQn</code> = -1 <i>*Cortex-M4 System Tick 
 
 
 <pre class="src src-c">
-<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">SytTick_Handler</span>(<span style="color: #9acd32; font-weight: bold;">void</span>)
+<span style="color: #228b22;">void</span> <span style="color: #0000ff;">SytTick_Handler</span>(<span style="color: #228b22;">void</span>)
 {
     rt_interrupt_enter();
     rt_tick_increase();
@@ -1706,21 +1706,21 @@ typedef enum IRQn-&gt; <code>SysTick_IRQn</code> = -1 <i>*Cortex-M4 System Tick 
 
 
 <pre class="src src-c">
-<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">rt_tick_increase</span>(<span style="color: #9acd32; font-weight: bold;">void</span>)
+<span style="color: #228b22;">void</span> <span style="color: #0000ff;">rt_tick_increase</span>(<span style="color: #228b22;">void</span>)
 {
-    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_thread</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">thread</span>; <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#23450;&#20041;&#19968;&#20010;&#32447;&#31243;&#32467;&#26500;&#20307;
+    <span style="color: #a020f0;">struct</span> <span style="color: #228b22;">rt_thread</span> *<span style="color: #b8860b;">thread</span>; <span style="color: #b22222;">//</span><span style="color: #b22222;">&#23450;&#20041;&#19968;&#20010;&#32447;&#31243;&#32467;&#26500;&#20307;
 </span>
-    ++rt_tick; <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#36825;&#26159;&#19968;&#20010;&#38745;&#24577;&#20840;&#23616;&#21464;&#37327;&#65292;&#24212;&#35813;&#26159;&#29992;&#26469;&#23384;tick&#35745;&#25968;&#30340;
+    ++rt_tick; <span style="color: #b22222;">//</span><span style="color: #b22222;">&#36825;&#26159;&#19968;&#20010;&#38745;&#24577;&#20840;&#23616;&#21464;&#37327;&#65292;&#24212;&#35813;&#26159;&#29992;&#26469;&#23384;tick&#35745;&#25968;&#30340;
 </span>
-    thread = tr_thread_self(); <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#33719;&#21462;&#24403;&#21069;&#22312;&#36816;&#34892;&#30340;&#32447;&#31243;
+    thread = tr_thread_self(); <span style="color: #b22222;">//</span><span style="color: #b22222;">&#33719;&#21462;&#24403;&#21069;&#22312;&#36816;&#34892;&#30340;&#32447;&#31243;
 </span>
-    -- thread-&gt;remainning_tick; <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#32447;&#31243;&#21097;&#20313;&#26102;&#38388;&#20943;&#23569;
-</span>    <span style="color: #add8e6; font-weight: bold;">if</span> (thread-&gt;remaining_tick == 0) { <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#30475;&#30475;&#26159;&#19981;&#26159;&#20943;&#23569;&#21040;&#38646;&#20102;
-</span>        thread-&gt;remaining_tick = thread-&gt;init_tick; <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#20934;&#22791;&#37325;&#26032;&#24320;&#22987;
-</span>        rt_thread_yield(); <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#20027;&#21160;&#35753;&#20986;CPU
+    -- thread-&gt;remainning_tick; <span style="color: #b22222;">//</span><span style="color: #b22222;">&#32447;&#31243;&#21097;&#20313;&#26102;&#38388;&#20943;&#23569;
+</span>    <span style="color: #a020f0;">if</span> (thread-&gt;remaining_tick == 0) { <span style="color: #b22222;">//</span><span style="color: #b22222;">&#30475;&#30475;&#26159;&#19981;&#26159;&#20943;&#23569;&#21040;&#38646;&#20102;
+</span>        thread-&gt;remaining_tick = thread-&gt;init_tick; <span style="color: #b22222;">//</span><span style="color: #b22222;">&#20934;&#22791;&#37325;&#26032;&#24320;&#22987;
+</span>        rt_thread_yield(); <span style="color: #b22222;">//</span><span style="color: #b22222;">&#20027;&#21160;&#35753;&#20986;CPU
 </span>    }
-    rt_timer_check(); <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">timer.c &#26816;&#26597;timer list&#65292;&#22914;&#26524;&#19968;&#20010;&#36229;&#26102;&#20107;&#20214;&#21457;&#29983;&#65292;&#30456;&#20851;&#30340;&#36229;&#26102;&#20989;&#25968;&#23558;&#20250;&#34987;&#35843;&#29992;
-</span>                      <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#36825;&#20010;&#20989;&#25968;&#24212;&#35813;&#22312;&#25805;&#20316;&#31995;&#32479;&#26102;&#38388;&#20013;&#26029;&#20869;&#34987;&#35843;&#29992;                                                           
+    rt_timer_check(); <span style="color: #b22222;">//</span><span style="color: #b22222;">timer.c &#26816;&#26597;timer list&#65292;&#22914;&#26524;&#19968;&#20010;&#36229;&#26102;&#20107;&#20214;&#21457;&#29983;&#65292;&#30456;&#20851;&#30340;&#36229;&#26102;&#20989;&#25968;&#23558;&#20250;&#34987;&#35843;&#29992;
+</span>                      <span style="color: #b22222;">// </span><span style="color: #b22222;">&#36825;&#20010;&#20989;&#25968;&#24212;&#35813;&#22312;&#25805;&#20316;&#31995;&#32479;&#26102;&#38388;&#20013;&#26029;&#20869;&#34987;&#35843;&#29992;                                                           
 </span>}
 </pre>
 
@@ -1733,49 +1733,49 @@ timer.c
 
 
 <pre class="src src-c">
-<span style="color: #9acd32; font-weight: bold;">void</span> <span style="color: #ffff00; font-weight: bold; font-style: italic;">rt_timer_check</span>(<span style="color: #9acd32; font-weight: bold;">void</span>)
+<span style="color: #228b22;">void</span> <span style="color: #0000ff;">rt_timer_check</span>(<span style="color: #228b22;">void</span>)
 {
-    <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_timer</span> *<span style="color: #add8e6; font-weight: bold; font-style: italic;">t</span>;
-    <span style="color: #9acd32; font-weight: bold;">rt_tick_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">current_tick</span>;
-    <span style="color: #add8e6; font-weight: bold;">register</span> <span style="color: #9acd32; font-weight: bold;">rt_base_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">level</span>;
+    <span style="color: #a020f0;">struct</span> <span style="color: #228b22;">rt_timer</span> *<span style="color: #b8860b;">t</span>;
+    <span style="color: #228b22;">rt_tick_t</span> <span style="color: #b8860b;">current_tick</span>;
+    <span style="color: #a020f0;">register</span> <span style="color: #228b22;">rt_base_t</span> <span style="color: #b8860b;">level</span>;
 
     current_tick = rt_tick_get();
 
-    <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">disable interrupt</span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/*</span><span style="color: #b22222;">disable interrupt</span><span style="color: #b22222;">*/</span>
     level = rt_hw_interrupt_disable();
 
-    <span style="color: #add8e6; font-weight: bold;">while</span>(!rt_list_isempty(&amp;rt_timer_list)) {
-        t = rt_list_entry(rt_timer_list.next, <span style="color: #add8e6; font-weight: bold;">struct</span> <span style="color: #9acd32; font-weight: bold;">rt_timer</span>, list);
+    <span style="color: #a020f0;">while</span>(!rt_list_isempty(&amp;rt_timer_list)) {
+        t = rt_list_entry(rt_timer_list.next, <span style="color: #a020f0;">struct</span> <span style="color: #228b22;">rt_timer</span>, list);
 
-        <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">
+        <span style="color: #b22222;">/*</span><span style="color: #b22222;">
             It supposes that the new tick shall less than the half duration ofo tick max.
-        </span><span style="color: #cccccc; font-style: italic;">*/</span>
-        <span style="color: #add8e6; font-weight: bold;">if</span> ((current_tick - t-&gt;timeout_tick) &lt; RT_TICK_MAX/2) {
+        </span><span style="color: #b22222;">*/</span>
+        <span style="color: #a020f0;">if</span> ((current_tick - t-&gt;timeout_tick) &lt; RT_TICK_MAX/2) {
             RT_OBJECT_HOOK_CALL(rt_timer_timeout_hook, (t));
 
-            <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">remove timer from timer list firstly</span><span style="color: #cccccc; font-style: italic;">*/</span>
+            <span style="color: #b22222;">/*</span><span style="color: #b22222;">remove timer from timer list firstly</span><span style="color: #b22222;">*/</span>
             rt_list_remove(&amp;(t-&gt;list));
 
-            <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">call timeout fucntion </span><span style="color: #cccccc; font-style: italic;">*/</span>
+            <span style="color: #b22222;">/*</span><span style="color: #b22222;">call timeout fucntion </span><span style="color: #b22222;">*/</span>
             t-&gt;timeout_func(t-&gt;parameter);
 
-            <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">re-get tick</span><span style="color: #cccccc; font-style: italic;">*/</span>
+            <span style="color: #b22222;">/*</span><span style="color: #b22222;">re-get tick</span><span style="color: #b22222;">*/</span>
             current_tick = rt_tick_get();
             
-            <span style="color: #add8e6; font-weight: bold;">if</span> ((t-&gt;parent.flag &amp; RT_TIMER_FLAG_PERIODIC) &amp;&amp; 
+            <span style="color: #a020f0;">if</span> ((t-&gt;parent.flag &amp; RT_TIMER_FLAG_PERIODIC) &amp;&amp; 
                 (t-&gt;parent.flag &amp; RT_TIMER_FLAG_ACTIVATED)) {
-                <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">start it</span><span style="color: #cccccc; font-style: italic;">*/</span>
+                <span style="color: #b22222;">/*</span><span style="color: #b22222;">start it</span><span style="color: #b22222;">*/</span>
                 t-&gt;parent.flag &amp;= ~RT_TIMER_FLAG_ACTIVATED;
                 rt_timer_start(t);
-            } <span style="color: #add8e6; font-weight: bold;">else</span> {
-                <span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">stop timer</span><span style="color: #cccccc; font-style: italic;">*/</span>
+            } <span style="color: #a020f0;">else</span> {
+                <span style="color: #b22222;">/*</span><span style="color: #b22222;">stop timer</span><span style="color: #b22222;">*/</span>
                 t-&gt;parent.flag &amp;= ~RT_TIMER_FLAG_ACTIVATED;
             }
-        } <span style="color: #add8e6; font-weight: bold;">else</span> 
-            <span style="color: #add8e6; font-weight: bold;">break</span>;
+        } <span style="color: #a020f0;">else</span> 
+            <span style="color: #a020f0;">break</span>;
     }
     
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">enable interrupt </span><span style="color: #cccccc; font-style: italic;">*/</span>
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">enable interrupt </span><span style="color: #b22222;">*/</span>
     rt_hw_interrupt_enable(level);
 }
 </pre>
@@ -1813,13 +1813,13 @@ timer.c
 
 
 <pre class="src src-c">
-<span style="color: #cccccc; font-style: italic;">/*</span><span style="color: #cccccc; font-style: italic;">thread state definitions</span><span style="color: #cccccc; font-style: italic;">*/</span>
-<span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">RT_THREAD_INIT</span>        0x00                 <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#21021;&#22987;&#29366;&#24577; &#32447;&#31243;&#19981;&#21442;&#19982;&#35843;&#24230;
-</span><span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">RT_THREAD_READY</span>       0x01                 <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#23601;&#32490;&#29366;&#24577; 
-</span><span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">RT_THREAD_SUSPEND</span>     0x02                 <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#25346;&#36215;&#29366;&#24577; &#32447;&#31243;&#19981;&#21442;&#19982;&#35843;&#24230; 
-</span><span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">RT_THREAD_RUNNING</span>     0x03                 <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#36816;&#34892;&#29366;&#24577;
-</span><span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">RT_THREAD_BLOCK</span>       RT_THREAD_SUSPEND    <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#38459;&#22622;&#29366;&#24577; &#32447;&#31243;&#19981;&#21442;&#19982;&#35843;&#24230;
-</span><span style="color: #0000cd;">#define</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">RT_THREAD_CLOSE</span>       0x04                 <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#20851;&#38381;&#29366;&#24577; &#32447;&#31243;&#19981;&#21442;&#19982;&#35843;&#24230;
+<span style="color: #b22222;">/*</span><span style="color: #b22222;">thread state definitions</span><span style="color: #b22222;">*/</span>
+<span style="color: #fa8072;">#define</span> <span style="color: #b8860b;">RT_THREAD_INIT</span>        0x00                 <span style="color: #b22222;">// </span><span style="color: #b22222;">&#21021;&#22987;&#29366;&#24577; &#32447;&#31243;&#19981;&#21442;&#19982;&#35843;&#24230;
+</span><span style="color: #fa8072;">#define</span> <span style="color: #b8860b;">RT_THREAD_READY</span>       0x01                 <span style="color: #b22222;">// </span><span style="color: #b22222;">&#23601;&#32490;&#29366;&#24577; 
+</span><span style="color: #fa8072;">#define</span> <span style="color: #b8860b;">RT_THREAD_SUSPEND</span>     0x02                 <span style="color: #b22222;">// </span><span style="color: #b22222;">&#25346;&#36215;&#29366;&#24577; &#32447;&#31243;&#19981;&#21442;&#19982;&#35843;&#24230; 
+</span><span style="color: #fa8072;">#define</span> <span style="color: #b8860b;">RT_THREAD_RUNNING</span>     0x03                 <span style="color: #b22222;">// </span><span style="color: #b22222;">&#36816;&#34892;&#29366;&#24577;
+</span><span style="color: #fa8072;">#define</span> <span style="color: #b8860b;">RT_THREAD_BLOCK</span>       RT_THREAD_SUSPEND    <span style="color: #b22222;">// </span><span style="color: #b22222;">&#38459;&#22622;&#29366;&#24577; &#32447;&#31243;&#19981;&#21442;&#19982;&#35843;&#24230;
+</span><span style="color: #fa8072;">#define</span> <span style="color: #b8860b;">RT_THREAD_CLOSE</span>       0x04                 <span style="color: #b22222;">// </span><span style="color: #b22222;">&#20851;&#38381;&#29366;&#24577; &#32447;&#31243;&#19981;&#21442;&#19982;&#35843;&#24230;
 </span></pre>
 
 
@@ -1929,7 +1929,7 @@ rt-thread的调度算法是基于优先级和时间片的，时间片部分前�
 
 
 <pre class="src src-c">
-<span style="color: #9acd32; font-weight: bold;">rt_list_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">rt_thread_priority_table</span>[RT_THREAD_PRIORITY_MAX];
+<span style="color: #228b22;">rt_list_t</span> <span style="color: #b8860b;">rt_thread_priority_table</span>[RT_THREAD_PRIORITY_MAX];
 </pre>
 
 
@@ -1969,7 +1969,7 @@ to_thread = rt_list_entry(rt_thread_priority_table[highest_ready_priority].next,
 
 
 <pre class="src src-c">
-<span style="color: #9acd32; font-weight: bold;">rt_uint8_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">rt_thread_ready_table</span>[32];
+<span style="color: #228b22;">rt_uint8_t</span> <span style="color: #b8860b;">rt_thread_ready_table</span>[32];
 </pre>
 
 
@@ -2036,24 +2036,24 @@ to_thread = rt_list_entry(rt_thread_priority_table[highest_ready_priority].next,
 
 
 <pre class="src src-c">
-<span style="color: #add8e6; font-weight: bold;">const</span> <span style="color: #9acd32; font-weight: bold;">rt_uint8_t</span> <span style="color: #add8e6; font-weight: bold; font-style: italic;">rt_lowest_bitmap</span>[] =
+<span style="color: #a020f0;">const</span> <span style="color: #228b22;">rt_uint8_t</span> <span style="color: #b8860b;">rt_lowest_bitmap</span>[] =
 {
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">00 </span><span style="color: #cccccc; font-style: italic;">*/</span> 0, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">10 </span><span style="color: #cccccc; font-style: italic;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">20 </span><span style="color: #cccccc; font-style: italic;">*/</span> 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">30 </span><span style="color: #cccccc; font-style: italic;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">40 </span><span style="color: #cccccc; font-style: italic;">*/</span> 6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">50 </span><span style="color: #cccccc; font-style: italic;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">60 </span><span style="color: #cccccc; font-style: italic;">*/</span> 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">70 </span><span style="color: #cccccc; font-style: italic;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">80 </span><span style="color: #cccccc; font-style: italic;">*/</span> 7, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">90 </span><span style="color: #cccccc; font-style: italic;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">A0 </span><span style="color: #cccccc; font-style: italic;">*/</span> 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">B0 </span><span style="color: #cccccc; font-style: italic;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">C0 </span><span style="color: #cccccc; font-style: italic;">*/</span> 6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">D0 </span><span style="color: #cccccc; font-style: italic;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">E0 </span><span style="color: #cccccc; font-style: italic;">*/</span> 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    <span style="color: #cccccc; font-style: italic;">/* </span><span style="color: #cccccc; font-style: italic;">F0 </span><span style="color: #cccccc; font-style: italic;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">00 </span><span style="color: #b22222;">*/</span> 0, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">10 </span><span style="color: #b22222;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">20 </span><span style="color: #b22222;">*/</span> 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">30 </span><span style="color: #b22222;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">40 </span><span style="color: #b22222;">*/</span> 6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">50 </span><span style="color: #b22222;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">60 </span><span style="color: #b22222;">*/</span> 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">70 </span><span style="color: #b22222;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">80 </span><span style="color: #b22222;">*/</span> 7, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">90 </span><span style="color: #b22222;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">A0 </span><span style="color: #b22222;">*/</span> 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">B0 </span><span style="color: #b22222;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">C0 </span><span style="color: #b22222;">*/</span> 6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">D0 </span><span style="color: #b22222;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">E0 </span><span style="color: #b22222;">*/</span> 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    <span style="color: #b22222;">/* </span><span style="color: #b22222;">F0 </span><span style="color: #b22222;">*/</span> 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
 };
 </pre>
 
@@ -2067,16 +2067,16 @@ to_thread = rt_list_entry(rt_thread_priority_table[highest_ready_priority].next,
 
 
 <pre class="src src-c">
-<span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#19968;&#24320;&#22987;&#30340;&#26102;&#20505;&#65292;&#35201;&#29992;&#21040;thread&#32467;&#26500;&#20307;
+<span style="color: #b22222;">// </span><span style="color: #b22222;">&#19968;&#24320;&#22987;&#30340;&#26102;&#20505;&#65292;&#35201;&#29992;&#21040;thread&#32467;&#26500;&#20307;
 </span>thread-&gt;init_priority = priority;
-<span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#22312;starup&#20989;&#25968;&#37324;&#38754;&#65292;&#36716;&#25442;&#20248;&#20808;&#32423;&#65292;&#32431;&#25968;&#23398;
-</span>thread-&gt;number = thread-&gt;current_priority &gt;&gt; 3; <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#30456;&#24403;&#20110;prioroity/8&#21462;&#24471;&#33853;&#22312;&#21738;&#19968;&#20010;&#32452;&#37324;&#38754;
+<span style="color: #b22222;">// </span><span style="color: #b22222;">&#22312;starup&#20989;&#25968;&#37324;&#38754;&#65292;&#36716;&#25442;&#20248;&#20808;&#32423;&#65292;&#32431;&#25968;&#23398;
+</span>thread-&gt;number = thread-&gt;current_priority &gt;&gt; 3; <span style="color: #b22222;">//</span><span style="color: #b22222;">&#30456;&#24403;&#20110;prioroity/8&#21462;&#24471;&#33853;&#22312;&#21738;&#19968;&#20010;&#32452;&#37324;&#38754;
 </span>thread-&gt;number_mask = 1L &lt;&lt; thread_number; 
-thread-&gt;high_mask = 1L &lt;&lt; (thread-&gt;current_priority &amp; 0x07); <span style="color: #cccccc; font-style: italic;">//</span><span style="color: #cccccc; font-style: italic;">&#30456;&#24403;&#20110;priority%8&#65292;&#20313;&#25968;&#65292;&#21462;&#30340;&#36825;&#19968;&#20010;&#32452;&#20013;&#65292;8bit&#20013;&#30340;&#31532;&#20960;&#20301;
-</span><span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#32622;&#19968;&#30340;&#30446;&#30340;&#22312;&#20110;&#26041;&#20415;&#20301;&#25805;&#20316;
-</span><span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">insert&#36827;&#31243;&#30340;&#26102;&#20505;&#32622;&#20301;
-</span>rt_thread_ready_table[thread-&gt;number] |= thread-&gt;high_mask; <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#23545;&#24212;&#32452;&#20013;&#30340;&#23545;&#24212;&#20301;&#65292;&#32622;&#19968;
-</span>rt_thread_ready_priority_group |= thread-&gt;number_mask; <span style="color: #cccccc; font-style: italic;">// </span><span style="color: #cccccc; font-style: italic;">&#23545;&#24212;&#32452;&#20013;&#30340;&#26631;&#35760;&#65292;&#32622;&#19968;
+thread-&gt;high_mask = 1L &lt;&lt; (thread-&gt;current_priority &amp; 0x07); <span style="color: #b22222;">//</span><span style="color: #b22222;">&#30456;&#24403;&#20110;priority%8&#65292;&#20313;&#25968;&#65292;&#21462;&#30340;&#36825;&#19968;&#20010;&#32452;&#20013;&#65292;8bit&#20013;&#30340;&#31532;&#20960;&#20301;
+</span><span style="color: #b22222;">// </span><span style="color: #b22222;">&#32622;&#19968;&#30340;&#30446;&#30340;&#22312;&#20110;&#26041;&#20415;&#20301;&#25805;&#20316;
+</span><span style="color: #b22222;">// </span><span style="color: #b22222;">insert&#36827;&#31243;&#30340;&#26102;&#20505;&#32622;&#20301;
+</span>rt_thread_ready_table[thread-&gt;number] |= thread-&gt;high_mask; <span style="color: #b22222;">// </span><span style="color: #b22222;">&#23545;&#24212;&#32452;&#20013;&#30340;&#23545;&#24212;&#20301;&#65292;&#32622;&#19968;
+</span>rt_thread_ready_priority_group |= thread-&gt;number_mask; <span style="color: #b22222;">// </span><span style="color: #b22222;">&#23545;&#24212;&#32452;&#20013;&#30340;&#26631;&#35760;&#65292;&#32622;&#19968;
 </span></pre>
 
 
@@ -2190,6 +2190,6 @@ highest_ready_priority = (number &lt;&lt; 3) + rt_lowest_bitmap[rt_thread_ready_
 <div id="postamble"><p class="author"> Author: Wizard.Yang
 <a href="mailto:xblandy@gmail.com">&lt;xblandy@gmail.com&gt;</a>
 </p>
-<p class="date"> Date: 2012-09-10 14:10:12 CST</p>
+<p class="date"> Date: 2012-09-11 09:18:00 CST</p>
 </div></body>
 </html>
